@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipe Distiller — just the recipe</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 1.5rem; line-height: 1.55; }
+  h1 { font-size: 1.6rem; }
+  .muted { color: gray; font-size: .9rem; }
+  form { display: flex; gap: .5rem; margin: 1rem 0; }
+  input[type=url] { flex: 1; padding: .6rem; font-size: 1rem; }
+  button { padding: .6rem 1rem; font-size: 1rem; cursor: pointer; }
+  .card { border: 1px solid #8884; border-radius: 12px; padding: 1rem 1.25rem; margin: 1rem 0; }
+  .card h2 { margin-top: 0; }
+  .meta { color: #666; font-size: .9rem; }
+  .saved-item { display: flex; justify-content: space-between; gap: .5rem; padding: .35rem 0; border-bottom: 1px solid #8882; }
+  .hidden { display: none; }
+  pre { white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>🍲 Recipe Distiller</h1>
+<p class="muted">Встав посилання на рецепт — отримай лише рецепт, без життя-історій та реклами.</p>
+
+<form id="f">
+  <input type="url" id="url" placeholder="https://example.com/borscht" required>
+  <button type="submit">Extract</button>
+</form>
+<p id="status" class="muted"></p>
+
+<div id="result" class="hidden"></div>
+
+<h2>📖 Моя книга рецептів</h2>
+<div id="saved"></div>
+
+<template id="tpl">
+  <div class="card">
+    <h2 class="title"></h2>
+    <p class="meta"></p>
+    <h3>Ingredients</h3><ul class="ings"></ul>
+    <h3>Steps</h3><ol class="steps"></ol>
+    <p class="actions">
+      <button class="save">💾 Save</button>
+      <a class="orig" target="_blank" rel="noopener">original ↗</a>
+      <details><summary>JSON</summary><pre class="json"></pre></details>
+    </p>
+  </div>
+</template>
+
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const esc = s => { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
+
+function card(recipe, url) {
+  const node = $('#tpl').content.cloneNode(true);
+  $('.title', node).textContent = recipe.title || url;
+  const meta = [recipe.servings, recipe.prep_time && ('prep: ' + recipe.prep_time),
+                recipe.cook_time && ('cook: ' + recipe.cook_time),
+                recipe.total_time && ('total: ' + recipe.total_time)].filter(Boolean).join(' · ');
+  $('.meta', node).textContent = meta;
+  for (const i of recipe.ingredients || []) $('.ings', node).insertAdjacentHTML('beforeend', `<li>${esc(i)}</li>`);
+  for (const s of recipe.steps || []) $('.steps', node).insertAdjacentHTML('beforeend', `<li>${esc(s)}</li>`);
+  $('.orig', node).href = url;
+  $('.json', node).textContent = JSON.stringify(recipe, null, 2);
+  $('.save', node).onclick = async () => {
+    const r = await fetch('/api/recipes', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
+    $('.save', node).textContent = r.ok ? '✅ Saved' : '❌ Error';
+    if (r.ok) loadSaved();
+  };
+  return node;
+}
+
+async function loadSaved() {
+  const r = await fetch('/api/recipes');
+  const { recipes } = await r.json();
+  const box = $('#saved');
+  box.innerHTML = recipes.length ? '' : '<p class="muted">Ще нічого не збережено.</p>';
+  for (const it of recipes) {
+    box.insertAdjacentHTML('beforeend',
+      `<div class="saved-item"><a href="/print/${it.id}">${esc(it.title)}</a>
+       <button data-del="${it.id}">🗑</button></div>`);
+  }
+  box.querySelectorAll('button[data-del]').forEach(b => b.onclick = async () => {
+    await fetch('/api/recipes/' + b.dataset.del, {method:'DELETE'}); loadSaved();
+  });
+}
+
+$('#f').onsubmit = async (e) => {
+  e.preventDefault();
+  const url = $('#url').value.trim();
+  $('#status').textContent = '⏳ Дістаю рецепт…';
+  const r = await fetch('/api/extract', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
+  const data = await r.json();
+  $('#status').textContent = r.ok ? '' : ('❌ ' + (data.detail || 'error'));
+  const box = $('#result');
+  box.innerHTML = ''; box.classList.remove('hidden');
+  if (r.ok) box.appendChild(card(data.recipe, url));
+};
+
+loadSaved();
+</script>
+</body>
+</html>
