@@ -1,0 +1,18 @@
+# systemd user unit for Recipe Distiller.
+# Install:  mkdir -p ~/.config/systemd/user
+#           cp deploy/recipe-distiller.service ~/.config/systemd/user/
+#           systemctl --user daemon-reload && systemctl --user enable --now recipe-distiller
+# (adjust WorkingDirectory to where you cloned the project)
+
+[Unit]
+Description=Recipe Distiller — local "just the recipe" web app
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/Projects/recipe-distiller
+ExecStart=/usr/bin/env python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
