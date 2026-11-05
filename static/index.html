@@ -288,9 +288,7 @@ $('#importfile').onchange = async () => {
   loadSaved();
 };
 
-$('#f').onsubmit = async (e) => {
-  e.preventDefault();
-  const url = $('#url').value.trim();
+async function distill(url) {
   $('#status').textContent = '⏳ Дістаю рецепт…';
   const r = await fetch('/api/extract', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
   const data = await r.json();
@@ -298,7 +296,17 @@ $('#f').onsubmit = async (e) => {
   const box = $('#result');
   box.innerHTML = ''; box.classList.remove('hidden');
   if (r.ok) box.appendChild(card(data.recipe, url));
+}
+
+$('#f').onsubmit = (e) => {
+  e.preventDefault();
+  const url = $('#url').value.trim();
+  if (url) distill(url);
 };
+
+// deep link: extension / bookmarklet open the app as /?url=<recipe page>
+const urlParam = new URLSearchParams(location.search).get('url');
+if (urlParam) { $('#url').value = urlParam; distill(urlParam.trim()); }
 
 loadSaved();
 loadPlan();

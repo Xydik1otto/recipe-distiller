@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<title>Recipe Distiller — налаштування</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 420px; margin: 1.5rem auto; line-height: 1.5; }
+  input { width: 100%; padding: .5rem; font-size: 1rem; margin: .3rem 0 .8rem; }
+  button { padding: .5rem 1rem; font-size: 1rem; cursor: pointer; }
+  #saved { color: #2e7d32; }
+</style>
+</head>
+<body>
+<h1>🍲 Recipe Distiller</h1>
+<p><label for="distiller">Адреса вашого Recipe Distiller сервера:</label></p>
+<input type="url" id="distiller" placeholder="http://localhost:8000">
+<button type="button" id="save">Зберегти</button>
+<span id="saved" role="status" aria-live="polite"></span>
+<script src="options.js"></script>
+</body>
+</html>
