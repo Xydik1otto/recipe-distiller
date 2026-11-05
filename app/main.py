@@ -58,6 +58,10 @@ class SaveRequest(BaseModel):
     url: HttpUrl
 
 
+class ExtractUrlsRequest(BaseModel):
+    urls: List[HttpUrl]
+
+
 @app.get("/", response_class=HTMLResponse)
 def index():
     return FileResponse(STATIC_DIR / "index.html")
@@ -229,6 +233,58 @@ def plan_shopping_list():
     return result
 
 
+@app.get("/api/pantry")
+def get_pantry():
+    """'What's in the fridge' — the current pantry item list."""
+    return {"items": db.get_pantry(db.connect())}
+
+
+class PantryRequest(BaseModel):
+    items: List[str]
+
+
+@app.put("/api/pantry")
+def put_pantry(req: PantryRequest):
+    return {"items": db.set_pantry(db.connect(), req.items)}
+
+
+@app.get("/api/pantry/match")
+def pantry_match():
+    """Saved recipes sorted by how much of them the pantry already covers."""
+    from .pantry import match_recipes
+    conn = db.connect()
+    items = db.get_pantry(conn)
+    saved = [{"id": r["id"], "title": r["title"], "recipe": r["recipe"]}
+             for r in (db.get_saved(conn, x["id"]) for x in db.list_saved(conn))]
+    return {"pantry": items, "matches": match_recipes(saved, items)}
+
+
+class NutritionRequest(BaseModel):
+    recipe: Dict
+
+
+@app.post("/api/nutrition")
+def estimate_nutrition(req: NutritionRequest):
+    """Approximate kcal/macros from ingredient lines (±20-30%, not medical)."""
+    from .nutrition import estimate
+    return estimate(req.recipe)
+
+
+@app.get("/api/recipes/{recipe_id}/nutrition")
+def estimate_saved_nutrition(recipe_id: int):
+    item = db.get_saved(db.connect(), recipe_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Recipe not found.")
+    from .nutrition import estimate
+    return estimate(item["recipe"])
+
+
+@app.get("/api/tags/suggest")
+def tags_suggest(q: str = ""):
+    """Autocomplete for the tag filter: the book's tag vocabulary."""
+    return {"suggestions": db.all_tags(db.connect(), q=q.strip() or None)}
+
+
 @app.get("/api/recipes/export")
 def export_recipes():
     conn = db.connect()
@@ -251,6 +307,35 @@ def export_recipes_csv():
     from fastapi.responses import Response
     return Response(buf.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": 'attachment; filename="recipes.csv"'})
+
+
+@app.post("/api/recipes/import-urls")
+def import_from_urls(req: ExtractUrlsRequest):
+    """Bulk import: distill a list of recipe URLs one by one.
+
+    Per-URL result instead of all-or-nothing: a broken page must not lose
+    the rest of the batch. Capped at 25 URLs per call.
+    """
+    if not req.urls or len(req.urls) > 25:
+        raise HTTPException(status_code=422, detail="Provide 1..25 URLs.")
+    conn = db.connect()
+    results, imported = [], 0
+    for raw in req.urls:
+        url = str(raw)
+        try:
+            html = fetch_html(url)
+            recipe = extract_from_html(html, url)
+            if not recipe:
+                raise RuntimeError("No recipe found on this page.")
+            rid = db.save_recipe(conn, url, recipe)
+            db.cache_put(conn, url, recipe)
+            results.append({"url": url, "ok": True, "id": rid,
+                            "title": recipe.get("title") or url})
+            imported += 1
+        except RuntimeError as e:
+            results.append({"url": url, "ok": False, "error": str(e)})
+    return {"imported": imported, "failed": len(results) - imported,
+            "results": results}
 
 
 @app.post("/api/demo")
