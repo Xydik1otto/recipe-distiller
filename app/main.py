@@ -160,6 +160,22 @@ def convert_units(req: ConvertRequest):
     return {"items": items}
 
 
+@app.get("/api/substitutions")
+def substitutions_base():
+    """The full swap base, for display ('butter → margarine 1:1, coconut oil …')."""
+    from .substitutions import SUBSTITUTIONS
+    return {"substitutions": SUBSTITUTIONS}
+
+
+@app.post("/api/substitutions/match")
+def substitutions_match(req: ConvertRequest):
+    """Per-line hints: which known ingredient appears and what can replace it."""
+    from .substitutions import find_substitutions
+    items = [{"original": i, "substitutes": find_substitutions(i)}
+             for i in req.ingredients]
+    return {"items": items}
+
+
 class ShoppingListRequest(BaseModel):
     recipe_ids: List[int]
 

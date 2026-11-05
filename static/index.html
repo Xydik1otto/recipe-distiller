@@ -33,6 +33,8 @@
   .stars { white-space: nowrap; cursor: pointer; color: #bbb; font-size: .95rem; letter-spacing: 1px; }
   .stars .star.on { color: #e2a400; }
   .conv { color: #666; font-size: .85em; }
+  .subst { color: #0b6e3f; font-size: .85em; }
+  #substbase li { margin: .25rem 0; }
   label.check { display: block; cursor: pointer; }
   label.check input { accent-color: #2e7d32; margin-right: .3rem; }
   label.check input:checked ~ .txt { text-decoration: line-through; color: #777; }
@@ -50,6 +52,11 @@
 <p id="status" class="muted"></p>
 
 <div id="result" class="hidden"></div>
+
+<details id="substblock">
+  <summary>🔁 Заміни інгредієнтів (масло ↔ маргарин, тощо)</summary>
+  <ul id="substbase" class="muted"><li>завантаження…</li></ul>
+</details>
 
 <h2>📖 Моя книга рецептів</h2>
 <form id="searchf" style="display:flex;gap:.5rem;margin:.5rem 0;flex-wrap:wrap;align-items:center">
@@ -114,7 +121,7 @@ function card(recipe, url) {
   for (const [idx, i] of (recipe.ingredients || []).entries()) {
     const mark = checked[idx] ? ' checked' : '';
     $('.ings', node).insertAdjacentHTML('beforeend',
-      `<li><label class="check"><input type="checkbox" data-ing="${idx}"${mark}> <span class="txt">${esc(i)}</span> <span class="conv" data-conv="${idx}"></span></label></li>`);
+      `<li><label class="check"><input type="checkbox" data-ing="${idx}"${mark}> <span class="txt">${esc(i)}</span> <span class="conv" data-conv="${idx}"></span> <span class="subst" data-sub="${idx}"></span></label></li>`);
   }
   node.querySelectorAll('input[data-ing]').forEach(cb => cb.onchange = () => {
     checked[cb.dataset.ing] = cb.checked;
@@ -129,6 +136,18 @@ function card(recipe, url) {
       .then(r => r.json())
       .then(d => (d.items || []).forEach((it, idx) => {
         if (it.converted) $(`[data-conv="${idx}"]`, node).textContent = ' ' + it.converted;
+      }))
+      .catch(() => {});
+    // substitution hints: '1 cup butter' → '↔ margarine (1:1) …'
+    fetch('/api/substitutions/match', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ingredients: recipe.ingredients})})
+      .then(r => r.json())
+      .then(d => (d.items || []).forEach((it, idx) => {
+        if (it.substitutes.length) {
+          const span = $(`[data-sub="${idx}"]`, node);
+          span.textContent = ' ↔ ' + it.substitutes.join(' · ');
+          span.title = 'Заміна: ' + it.substitutes.join(' · ');
+        }
       }))
       .catch(() => {});
   }
@@ -307,6 +326,16 @@ $('#f').onsubmit = (e) => {
 // deep link: extension / bookmarklet open the app as /?url=<recipe page>
 const urlParam = new URLSearchParams(location.search).get('url');
 if (urlParam) { $('#url').value = urlParam; distill(urlParam.trim()); }
+
+// substitution base browser: lazily loaded on first open
+$('#substblock').addEventListener('toggle', () => {
+  if (!$('#substblock').open || $('#substbase').dataset.loaded) return;
+  fetch('/api/substitutions').then(r => r.json()).then(({ substitutions }) => {
+    $('#substbase').innerHTML = Object.entries(substitutions)
+      .map(([k, subs]) => `<li><b>${esc(k)}</b> ↔ ${esc(subs.join(' · '))}</li>`).join('');
+    $('#substbase').dataset.loaded = '1';
+  }).catch(() => { $('#substbase').innerHTML = '<li>не вдалося завантажити</li>'; });
+});
 
 loadSaved();
 loadPlan();
