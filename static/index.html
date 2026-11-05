@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Recipe Distiller — just the recipe</title>
+<meta name="description" content="Встав посилання на рецепт — отримай лише рецепт, без життя-історій та реклами.">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta property="og:title" content="Recipe Distiller — just the recipe">
+<meta property="og:description" content="URL → чистий рецепт: інгредієнти й кроки, без реклами та 1200 слів про дитинство.">
+<meta property="og:type" content="website">
 <style>
   :root { color-scheme: light dark; }
   body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 1.5rem; line-height: 1.55; }
@@ -275,6 +281,9 @@ $('#f').onsubmit = async (e) => {
 
 loadSaved();
 loadPlan();
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});  // offline book — best effort
+}
 </script>
 </body>
 </html>

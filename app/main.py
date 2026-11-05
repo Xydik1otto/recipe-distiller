@@ -28,6 +28,17 @@ def bookmarklet_page():
     return FileResponse(STATIC_DIR / "bookmarklet.html")
 
 
+@app.get("/sw.js", response_class=FileResponse,
+         responses={200: {"content": {"application/javascript": {}}}})
+def service_worker():
+    return FileResponse(STATIC_DIR / "sw.js", media_type="application/javascript")
+
+
+@app.get("/manifest.webmanifest")
+def webmanifest():
+    return FileResponse(STATIC_DIR / "manifest.webmanifest", media_type="application/manifest+json")
+
+
 class ExtractRequest(BaseModel):
     url: HttpUrl
 

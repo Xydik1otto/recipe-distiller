@@ -1,0 +1,19 @@
+{
+  "name": "Recipe Distiller",
+  "short_name": "Recipes",
+  "description": "URL → чистий рецепт, без реклами та життя-історій",
+  "lang": "uk",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffaf5",
+  "theme_color": "#e2a400",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
