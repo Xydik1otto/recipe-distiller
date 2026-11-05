@@ -16,6 +16,10 @@
   .card h2 { margin-top: 0; }
   .meta { color: #666; font-size: .9rem; }
   .saved-item { display: flex; justify-content: space-between; gap: .5rem; padding: .35rem 0; border-bottom: 1px solid #8882; }
+  .plan-slot { display: flex; align-items: center; gap: .5rem; padding: .4rem .6rem;
+               margin: .3rem 0; border: 1px dashed #8886; border-radius: 8px; }
+  .plan-slot.over { background: #ffe; }
+  .plan-slot .day { width: 6rem; font-weight: 600; }
   .tag { display: inline-block; background: #8882; border-radius: 8px; padding: 0 .5rem; font-size: .8rem; }
   .hidden { display: none; }
   pre { white-space: pre-wrap; }
@@ -41,6 +45,11 @@
 <div id="saved"></div>
 <p><button type="button" id="shopbtn">🛒 Список покупок (обрані)</button></p>
 <div id="shoplist" class="card hidden"></div>
+<h2>📅 План на тиждень</h2>
+<p class="muted">Перетягни рецепт зі списку вище на день — або клікни слот, щоб призначити перший збережений.</p>
+<div id="plan"></div>
+<p><button type="button" id="planshopbtn">🛒 Список покупок з плану</button></p>
+
 <p>
   <a href="/api/recipes/export" download="recipes.json">⬇ Export JSON</a>
   <button type="button" id="importbtn">⬆ Import JSON</button>
@@ -107,7 +116,7 @@ async function loadSaved() {
   for (const it of recipes) {
     const tags = (it.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
     box.insertAdjacentHTML('beforeend',
-      `<div class="saved-item"><span><input type="checkbox" class="pick" value="${it.id}">
+      `<div class="saved-item" draggable="true" data-rid="${it.id}"><span><input type="checkbox" class="pick" value="${it.id}">
        <a href="/print/${it.id}">${esc(it.title)}</a> ${tags}</span>
        <span><button data-tag="${it.id}" title="теги">🏷</button>
        <button data-del="${it.id}">🗑</button></span></div>`);
@@ -129,6 +138,58 @@ async function loadSaved() {
 $('#searchf').onsubmit = e => e.preventDefault();
 $('#q').oninput = loadSaved;
 $('#tagf').oninput = loadSaved;
+
+const DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+
+async function loadPlan() {
+  const { slots } = await (await fetch('/api/plan')).json();
+  const box = $('#plan');
+  box.innerHTML = '';
+  slots.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'plan-slot';
+    div.innerHTML = `<span class="day">${DAYS[s.slot]}</span>
+      <span class="meal">${s.title ? `<a href="/print/${s.recipe_id}">${esc(s.title)}</a>` : '— вільно —'}</span>
+      ${s.recipe_id ? '<button data-clear="' + s.slot + '">✕</button>' : ''}`;
+    div.ondragover = e => { e.preventDefault(); div.classList.add('over'); };
+    div.ondragleave = () => div.classList.remove('over');
+    div.ondrop = async e => {
+      e.preventDefault(); div.classList.remove('over');
+      const rid = +e.dataTransfer.getData('text/plain');
+      if (rid) { await fetch('/api/plan', {method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({slot: s.slot, recipe_id: rid})}); loadPlan(); }
+    };
+    div.onclick = async e => {
+      if (e.target.closest('button')) return;
+      const first = document.querySelector('#saved .saved-item');
+      const rid = first ? +first.dataset.rid : null;
+      if (rid) { await fetch('/api/plan', {method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({slot: s.slot, recipe_id: rid})}); loadPlan(); }
+    };
+    box.appendChild(div);
+  });
+  box.querySelectorAll('button[data-clear]').forEach(b => b.onclick = async () => {
+    await fetch('/api/plan', {method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({slot: +b.dataset.clear, recipe_id: null})});
+    loadPlan();
+  });
+}
+
+document.addEventListener('dragstart', e => {
+  const item = e.target.closest('.saved-item[data-rid]');
+  if (item) e.dataTransfer.setData('text/plain', item.dataset.rid);
+});
+
+$('#planshopbtn').onclick = async () => {
+  const r = await fetch('/api/plan/shopping-list');
+  const d = await r.json();
+  const box = $('#shoplist');
+  box.classList.remove('hidden');
+  const items = [...d.items, ...d.unparsed];
+  box.innerHTML = `<h3>🛒 Список покупок з плану (${d.slots_used} рецептів)</h3>` +
+    (items.length ? '<ul>' + items.map(i => `<li>${esc(i)}</li>`).join('') + '</ul>'
+                  : '<p class="muted">План порожній.</p>');
+};
 
 $('#shopbtn').onclick = async () => {
   const ids = [...document.querySelectorAll('#saved .pick:checked')].map(c => +c.value);
@@ -170,6 +231,7 @@ $('#f').onsubmit = async (e) => {
 };
 
 loadSaved();
+loadPlan();
 </script>
 </body>
 </html>

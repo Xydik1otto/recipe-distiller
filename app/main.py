@@ -131,6 +131,36 @@ def shopping_list(req: ShoppingListRequest):
     return result
 
 
+class PlanSlotRequest(BaseModel):
+    slot: int  # 0..6, 0 = Monday
+    recipe_id: Optional[int] = None
+
+
+@app.get("/api/plan")
+def get_plan():
+    return {"slots": db.get_plan(db.connect())}
+
+
+@app.put("/api/plan")
+def put_plan_slot(req: PlanSlotRequest):
+    if not 0 <= req.slot < db.PLAN_SLOTS:
+        raise HTTPException(status_code=422,
+                            detail=f"slot must be 0..{db.PLAN_SLOTS - 1}")
+    if not db.set_plan_slot(db.connect(), req.slot, req.recipe_id):
+        raise HTTPException(status_code=404, detail="Recipe not found.")
+    return {"slot": req.slot, "recipe_id": req.recipe_id}
+
+
+@app.get("/api/plan/shopping-list")
+def plan_shopping_list():
+    from .shopping import build_shopping_list
+    conn = db.connect()
+    recipes = db.plan_recipes(conn)
+    result = build_shopping_list(recipes)
+    result["slots_used"] = len(recipes)
+    return result
+
+
 @app.get("/api/recipes/export")
 def export_recipes():
     conn = db.connect()

@@ -23,7 +23,13 @@ CREATE TABLE IF NOT EXISTS saved (
     data       TEXT NOT NULL,
     saved_at   REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS meal_plan (
+    slot      INTEGER PRIMARY KEY,
+    recipe_id INTEGER
+);
 """
+
+PLAN_SLOTS = 7  # one week, slot 0 = Monday
 
 
 def _migrate(conn: sqlite3.Connection) -> None:
@@ -136,5 +142,38 @@ def get_saved(conn: sqlite3.Connection, recipe_id: int) -> Optional[Dict]:
 
 def delete_saved(conn: sqlite3.Connection, recipe_id: int) -> bool:
     cur = conn.execute("DELETE FROM saved WHERE id = ?", (recipe_id,))
+    conn.execute("DELETE FROM meal_plan WHERE recipe_id = ?", (recipe_id,))
     conn.commit()
     return cur.rowcount > 0
+
+
+def get_plan(conn: sqlite3.Connection) -> List[Dict]:
+    """7 slots (0..6), each with the slotted recipe id and title (or None)."""
+    rows = conn.execute(
+        "SELECT p.slot, p.recipe_id, s.title FROM meal_plan p "
+        "LEFT JOIN saved s ON s.id = p.recipe_id").fetchall()
+    by_slot = {r["slot"]: (r["recipe_id"], r["title"]) for r in rows}
+    return [{"slot": s, "recipe_id": by_slot.get(s, (None, None))[0],
+             "title": by_slot.get(s, (None, None))[1]} for s in range(PLAN_SLOTS)]
+
+
+def set_plan_slot(conn: sqlite3.Connection, slot: int,
+                  recipe_id: Optional[int]) -> bool:
+    """Place a recipe into a slot (recipe_id=None clears it)."""
+    if not 0 <= slot < PLAN_SLOTS:
+        return False
+    if recipe_id is not None and not conn.execute(
+            "SELECT 1 FROM saved WHERE id = ?", (recipe_id,)).fetchone():
+        return False
+    conn.execute("INSERT OR REPLACE INTO meal_plan (slot, recipe_id) VALUES (?, ?)",
+                 (slot, recipe_id))
+    conn.commit()
+    return True
+
+
+def plan_recipes(conn: sqlite3.Connection) -> List[Dict]:
+    """Full recipe payloads of slotted meals, in slot order (empties skipped)."""
+    rows = conn.execute(
+        "SELECT s.data FROM meal_plan p JOIN saved s ON s.id = p.recipe_id "
+        "ORDER BY p.slot").fetchall()
+    return [json.loads(r["data"]) for r in rows]
