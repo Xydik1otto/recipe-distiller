@@ -229,6 +229,32 @@ def plan_shopping_list():
     return result
 
 
+@app.get("/api/pantry")
+def get_pantry():
+    """'What's in the fridge' — the current pantry item list."""
+    return {"items": db.get_pantry(db.connect())}
+
+
+class PantryRequest(BaseModel):
+    items: List[str]
+
+
+@app.put("/api/pantry")
+def put_pantry(req: PantryRequest):
+    return {"items": db.set_pantry(db.connect(), req.items)}
+
+
+@app.get("/api/pantry/match")
+def pantry_match():
+    """Saved recipes sorted by how much of them the pantry already covers."""
+    from .pantry import match_recipes
+    conn = db.connect()
+    items = db.get_pantry(conn)
+    saved = [{"id": r["id"], "title": r["title"], "recipe": r["recipe"]}
+             for r in (db.get_saved(conn, x["id"]) for x in db.list_saved(conn))]
+    return {"pantry": items, "matches": match_recipes(saved, items)}
+
+
 @app.get("/api/recipes/export")
 def export_recipes():
     conn = db.connect()

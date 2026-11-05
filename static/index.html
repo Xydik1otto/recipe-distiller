@@ -99,6 +99,17 @@
 <div id="plan"></div>
 <p><button type="button" id="planshopbtn" data-i18n="shop_plan">🛒 Список покупок з плану</button></p>
 
+<details id="pantryblock">
+  <summary data-i18n="pantry_summary">🧊 Що є в холодильнику</summary>
+  <p class="muted" data-i18n="pantry_hint">Впиши продукти через кому — застосунок покаже, які збережені рецепти вже можна готувати.</p>
+  <p>
+    <input type="text" id="pantryinput" style="min-width:16rem;padding:.5rem" data-i18n-ph="pantry_ph" placeholder="буряк, картопля, яйця…">
+    <button type="button" id="pantrysave" data-i18n="pantry_save">💾 Зберегти</button>
+    <button type="button" id="pantrymatch" data-i18n="pantry_match">🍳 Що можна готувати?</button>
+  </p>
+  <div id="pantryresults"></div>
+</details>
+
 <p>
   <a href="/api/recipes/export" download="recipes.json" data-i18n="export_link">⬇ Export JSON</a>
   <a href="/api/recipes/export.csv" download="recipes.csv" data-i18n="export_csv">⬇ Export CSV</a>
@@ -339,6 +350,34 @@ $('#importfile').onchange = async () => {
   $('#importfile').value = '';
   loadSaved();
 };
+
+// pantry: what's in the fridge -> which saved recipes are cookable right now
+async function loadPantry() {
+  const { items } = await (await fetch('/api/pantry')).json();
+  $('#pantryinput').value = items.join(', ');
+}
+$('#pantrysave').onclick = async () => {
+  const items = $('#pantryinput').value.split(',').map(s => s.trim()).filter(Boolean);
+  await fetch('/api/pantry', {method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({items})});
+  $('#status').textContent = t('pantry_saved');
+};
+$('#pantrymatch').onclick = async () => {
+  const { matches } = await (await fetch('/api/pantry/match')).json();
+  const box = $('#pantryresults');
+  box.innerHTML = matches.length ? '' : `<p class="muted">${t('pantry_none')}</p>`;
+  for (const m of matches) {
+    const miss = m.can_cook ? '' :
+      ` <span class="muted">${t('pantry_missing')}: ${esc(m.missing.join(', '))}</span>`;
+    box.insertAdjacentHTML('beforeend',
+      `<div class="saved-item"><span>${m.can_cook ? '✅' : '🟡'} ${Math.round(m.coverage * 100)}% — <a href="/print/${m.id}">${esc(m.title)}</a>${miss}</span></div>`);
+  }
+};
+$('#pantryblock').addEventListener('toggle', () => {
+  if ($('#pantryblock').open && !$('#pantryblock').dataset.loaded) {
+    loadPantry(); $('#pantryblock').dataset.loaded = '1';
+  }
+});
 
 async function distill(url) {
   $('#status').textContent = t('distilling');

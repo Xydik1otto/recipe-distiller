@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS meal_plan (
     slot      INTEGER PRIMARY KEY,
     recipe_id INTEGER
 );
+CREATE TABLE IF NOT EXISTS pantry (
+    item TEXT PRIMARY KEY
+);
 """
 
 PLAN_SLOTS = 7  # one week, slot 0 = Monday
@@ -218,3 +221,19 @@ def plan_recipes(conn: sqlite3.Connection) -> List[Dict]:
         "SELECT s.data FROM meal_plan p JOIN saved s ON s.id = p.recipe_id "
         "ORDER BY p.slot").fetchall()
     return [json.loads(r["data"]) for r in rows]
+
+
+def get_pantry(conn: sqlite3.Connection) -> List[str]:
+    """Current pantry ('fridge') items, alphabetical, lower-case, deduped."""
+    rows = conn.execute("SELECT item FROM pantry ORDER BY item").fetchall()
+    return [r["item"] for r in rows]
+
+
+def set_pantry(conn: sqlite3.Connection, items: List[str]) -> List[str]:
+    """Replace the whole pantry list (normalised: lower-case, stripped, deduped)."""
+    clean = sorted({str(i).strip().lower() for i in items if str(i).strip()})
+    conn.execute("DELETE FROM pantry")
+    conn.executemany("INSERT INTO pantry (item) VALUES (?)",
+                     [(i,) for i in clean])
+    conn.commit()
+    return clean
