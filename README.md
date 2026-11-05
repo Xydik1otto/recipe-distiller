@@ -108,12 +108,16 @@ javascript:(async()=>{const b='http://127.0.0.1:8000';try{const r=await fetch(b+
 | POST | `/api/extract` `{url}` | завантажити + витягти рецепт (кеш у SQLite на 24 год) |
 | POST | `/api/recipes` `{url}` | витягти і зберегти у книгу рецептів |
 | GET | `/api/recipes?q=&tag=` | список; пошук по назві/інгредієнтах, фільтр за тегом |
-| GET | `/api/recipes?favorite=1&sort=rating\|title` | фільтр «лише улюблені», сортування за рейтингом/назвою |
+| GET | `/api/recipes?favorite=1&sort=rating\|title\|new` | фільтр «лише улюблені», сортування за рейтингом/назвою/новизною |
 | PUT | `/api/recipes/{id}/rating` `{favorite?, rating?}` | улюблене ♥ + 5-зіркова оцінка |
 | POST | `/api/convert` `{ingredients: []}` | cups→ml→g підказки для типових інгредієнтів |
+| GET | `/api/substitutions` | база замін інгредієнтів (масло↔маргарин тощо) |
+| POST | `/api/substitutions/match` `{ingredients: []}` | підказки замін для рядків рецептів |
 | PUT | `/api/recipes/{id}/tags` `{tags: []}` | встановити теги |
 | GET | `/api/recipes/export` | експорт усіх збережених у JSON |
-| POST | `/api/recipes/import` | імпорт з export-формату (`{"recipes":[…]}` або `[…]`) |
+| GET | `/api/recipes/export.csv` | експорт усіх збережених у CSV |
+| POST | `/api/recipes/import` | імпорт з export-формату (`{"recipes":[…]}` або `[]`) |
+| POST | `/api/demo` | first-run: додати 3 демо-рецепти (opt-in, ідемпотентно) |
 | POST | `/api/scale` `{recipe, servings\|factor}` | перерахунок кількостей під нові порції |
 | POST | `/api/recipes/{id}/scale` `{servings}` | масштабувати збережений рецепт |
 | POST | `/api/shopping-list` `{recipe_ids: []}` | об'єднати інгредієнти кількох рецептів |
@@ -125,6 +129,7 @@ javascript:(async()=>{const b='http://127.0.0.1:8000';try{const r=await fetch(b+
 | DELETE | `/api/recipes/{id}` | видалити |
 | GET | `/print/{id}` | printable view (для друку/PDF) |
 | GET | `/` | веб-UI: поле URL → картка рецепта → Save |
+| GET | `/i18n.js` | словники UA/EN (перемикач мови в UI) |
 
 ## Структура
 
@@ -161,6 +166,20 @@ javascript:(async()=>{const b='http://127.0.0.1:8000';try{const r=await fetch(b+
   кеш на 24 год; 93 тести, без мережі; smoke-скрипт `scripts/smoke.sh`.
 
 Дорожня карта — [PLAN.md](PLAN.md). Історія змін — [CHANGELOG.md](CHANGELOG.md).
+
+## Встановлення
+
+- Windows / Linux покроково (для не-програміста): **[INSTALL.md](INSTALL.md)**.
+- Розширення для браузера (Manifest V3, unpacked): папка **[extension/](extension/)**,
+  інструкція — [extension/README.md](extension/README.md).
+
+## Contributing
+
+Баги, ідеї, PR — вітаємо: **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+Питання безпеки — **[SECURITY.md](SECURITY.md)** (не відкривайте публічний
+issue для вразливостей).
+Рекомендовані GitHub topics: `recipes`, `cooking`, `browser-extension`,
+`fastapi`, `pwa`, `self-hosted`.
 
 ## Ліцензія
 

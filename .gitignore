@@ -2,6 +2,10 @@ __pycache__/
 *.pyc
 .pytest_cache/
 *.db
+*.sqlite3
+.env
+.env.*
+*.env
 .venv/
 venv/
 *.egg-info/
@@ -10,4 +14,7 @@ build/
 dist/
 .env
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
 
