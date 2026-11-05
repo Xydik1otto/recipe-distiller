@@ -37,6 +37,11 @@ const I18N = {
     distilling: '⏳ Дістаю рецепт…',
     favorite_title: 'улюблене',
     tags_title: 'теги',
+    delete_title: 'видалити рецепт',
+    pick_aria: 'обрати для списку покупок',
+    stars_aria: 'зірок',
+    clear_slot: 'звільнити слот',
+    not_now: 'не зараз',
     free_slot: '— вільно —',
     shop_list: 'Список покупок',
     shop_list_plan: 'Список покупок з плану',
@@ -87,6 +92,11 @@ const I18N = {
     distilling: '⏳ Distilling the recipe…',
     favorite_title: 'favorite',
     tags_title: 'tags',
+    delete_title: 'delete recipe',
+    pick_aria: 'pick for shopping list',
+    stars_aria: 'stars',
+    clear_slot: 'clear slot',
+    not_now: 'not now',
     free_slot: '— free —',
     shop_list: 'Shopping list',
     shop_list_plan: 'Shopping list from plan',
@@ -119,6 +129,7 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-label]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nLabel)); });
   document.querySelectorAll('#sort option[data-i18n]').forEach(o => { o.textContent = t(o.dataset.i18n); });
 }
 

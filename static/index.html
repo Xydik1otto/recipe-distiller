@@ -14,7 +14,7 @@
   :root { color-scheme: light dark; }
   body { font-family: system-ui, sans-serif; max-width: 720px; margin: 0 auto; padding: 1.5rem; line-height: 1.55; }
   h1 { font-size: 1.6rem; }
-  .muted { color: gray; font-size: .9rem; }
+  .muted { color: #555; font-size: .9rem; }
   form { display: flex; gap: .5rem; margin: 1rem 0; }
   input[type=url] { flex: 1; padding: .6rem; font-size: 1rem; }
   button { padding: .6rem 1rem; font-size: 1rem; cursor: pointer; }
@@ -31,11 +31,13 @@
   .heart { background: none; border: none; padding: 0 .15rem; font-size: 1.05rem; cursor: pointer; color: #999; }
   .heart.on { color: #e0245e; }
   .stars { white-space: nowrap; cursor: pointer; color: #bbb; font-size: .95rem; letter-spacing: 1px; }
+  .stars .star { background: none; border: none; padding: 0; cursor: pointer; color: #bbb; font-size: .95rem; }
   .stars .star.on { color: #e2a400; }
   .conv { color: #666; font-size: .85em; }
   .subst { color: #0b6e3f; font-size: .85em; }
   .langbtn { padding: .2rem .6rem; font-size: .85rem; border-radius: 8px; }
   .langbtn.on { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+  :focus-visible { outline: 2px solid #2e7d32; outline-offset: 2px; }  /* keyboard nav */
   #substbase li { margin: .25rem 0; }
   @media print {
     body > :not(#shoplist) { display: none !important; }   /* print = shopping list only */
@@ -88,7 +90,7 @@
 <div id="demobanner" class="card hidden">
   <p data-i18n="demo_invite" style="margin:.2rem 0">Книга порожня. Хочеш спробувати на демо-рецептах?</p>
   <button type="button" id="demobtn" data-i18n="demo_btn">🧪 Завантажити демо</button>
-  <button type="button" id="demodismiss" aria-label="не зараз">✕</button>
+  <button type="button" id="demodismiss" data-i18n-label="not_now" aria-label="не зараз">✕</button>
 </div>
 <p><button type="button" id="shopbtn" data-i18n="shop_selected">🛒 Список покупок (обрані)</button></p>
 <div id="shoplist" class="card hidden"></div>
@@ -213,14 +215,14 @@ async function loadSaved() {
   for (const it of recipes) {
     const tags = (it.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
     const stars = [1,2,3,4,5].map(n =>
-      `<span class="star${n <= it.rating ? ' on' : ''}" data-star="${it.id}:${n}" title="${n}★">★</span>`).join('');
+      `<button type="button" class="star${n <= it.rating ? ' on' : ''}" data-star="${it.id}:${n}" title="${n}★" aria-label="${n}★ ${t('stars_aria')}">★</button>`).join('');
     box.insertAdjacentHTML('beforeend',
-      `<div class="saved-item" draggable="true" data-rid="${it.id}"><span><input type="checkbox" class="pick" value="${it.id}">
-       <button class="heart${it.favorite ? ' on' : ''}" data-fav="${it.id}" title="${t('favorite_title')}">${it.favorite ? '♥' : '♡'}</button>
+      `<div class="saved-item" draggable="true" data-rid="${it.id}"><span><input type="checkbox" class="pick" value="${it.id}" aria-label="${t('pick_aria')}: ${esc(it.title)}">
+       <button class="heart${it.favorite ? ' on' : ''}" data-fav="${it.id}" title="${t('favorite_title')}" aria-label="${t('favorite_title')}: ${esc(it.title)}">${it.favorite ? '♥' : '♡'}</button>
        <a href="/print/${it.id}">${esc(it.title)}</a> <span class="stars">${stars}</span> ${tags}
        <span class="added muted"> 📅 ${new Date(it.saved_at * 1000).toLocaleDateString()}</span></span>
-       <span><button data-tag="${it.id}" title="${t('tags_title')}">🏷</button>
-       <button data-del="${it.id}">🗑</button></span></div>`);
+       <span><button data-tag="${it.id}" title="${t('tags_title')}" aria-label="${t('tags_title')}: ${esc(it.title)}">🏷</button>
+       <button data-del="${it.id}" aria-label="${t('delete_title')}: ${esc(it.title)}">🗑</button></span></div>`);
   }
   box.querySelectorAll('button[data-del]').forEach(b => b.onclick = async () => {
     if (!confirm(t('delete_confirm'))) return;   // data safety: never a silent delete
@@ -268,7 +270,7 @@ async function loadPlan() {
     div.className = 'plan-slot';
     div.innerHTML = `<span class="day">${DAYS()[s.slot]}</span>
       <span class="meal">${s.title ? `<a href="/print/${s.recipe_id}">${esc(s.title)}</a>` : t('free_slot')}</span>
-      ${s.recipe_id ? '<button data-clear="' + s.slot + '">✕</button>' : ''}`;
+      ${s.recipe_id ? '<button data-clear="' + s.slot + '" aria-label="' + t('clear_slot') + '">✕</button>' : ''}`;
     div.ondragover = e => { e.preventDefault(); div.classList.add('over'); };
     div.ondragleave = () => div.classList.remove('over');
     div.ondrop = async e => {
