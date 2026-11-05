@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, List
 
 from fastapi import Body, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, HttpUrl
 
@@ -15,8 +16,16 @@ from .extractor import extract_from_html
 from .fetcher import fetch_html
 
 app = FastAPI(title="Recipe Distiller", version="0.1.0")
+# bookmarklet calls the API from any third-party site
+app.add_middleware(CORSMiddleware, allow_origins=["*"],
+                   allow_methods=["*"], allow_headers=["*"])
 
 STATIC_DIR = Path(__file__).parent.parent / "static"
+
+
+@app.get("/bookmarklet", response_class=HTMLResponse)
+def bookmarklet_page():
+    return FileResponse(STATIC_DIR / "bookmarklet.html")
 
 
 class ExtractRequest(BaseModel):
