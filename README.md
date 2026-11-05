@@ -3,7 +3,7 @@
 ![tests](https://github.com/bigpi/recipe-distiller/actions/workflows/tests.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.12+-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![version](https://img.shields.io/badge/version-0.4.0-orange)
+![version](https://img.shields.io/badge/version-1.0.0-orange)
 
 URL → чистий рецепт. Без реклами, без 1200 слів про дитинство, без попапів.
 
@@ -151,19 +151,24 @@ javascript:(async()=>{const b='http://127.0.0.1:8000';try{const r=await fetch(b+
 
 ## Статус
 
-**v0.4.0**:
+**v1.0.0**:
 
 - Extraction pipeline: JSON-LD (з @graph, вкладеними HowToSection/HowToStep) →
   microdata → евристики; нормалізація кількостей (`½`, `1/2`, `0.5` → parsed qty).
-- Книга рецептів: пошук по назві/інгредієнтах, теги, export/import JSON,
-  улюблені ♥ + 5-зіркові оцінки з сортуванням.
-- Конвертація одиниць: cups→ml→g для типових інгредієнтів (`/api/convert`,
-  підказки в картці та у printable-версії).
-- Print-friendly `/print` + ingredient-чекліст зі збереженням у localStorage.
+- Книга рецептів: пошук по назві/інгредієнтах, теги, export/import JSON + CSV,
+  улюблені ♥ + 5-зіркові оцінки, сортування за новизною/рейтингом/назвою.
+- **Browser extension** (MV3, unpacked `extension/`): кнопка на сторінці
+  рецепта → відкриває дистилер із цією URL.
+- **Substitution hints**: база замін (масло↔маргарин, яйце→лляне, тощо) в UI.
+- Дата додавання біля кожного рецепта + друк списку покупок.
+- **i18n UA/EN** з автовизначенням мови браузера, **first-run демо**
+  (3 opt-in демо-рецепти), **INSTALL.md**, packaging (`pip install -e .` +
+  консольна команда `recipe-distiller`), CSV-експорт з підтвердженням
+  видалення, a11y (aria-labels, фокус-обведення, контраст).
 - PWA offline: service worker кешує оболонку та збережену книгу рецептів,
   manifest для встановлення.
 - Bookmarklet, serving scaling, shopping list, meal plan, printable view,
-  кеш на 24 год; 93 тести, без мережі; smoke-скрипт `scripts/smoke.sh`.
+  кеш на 24 год; 143 тести, без мережі; smoke-скрипт `scripts/smoke.sh`.
 
 Дорожня карта — [PLAN.md](PLAN.md). Історія змін — [CHANGELOG.md](CHANGELOG.md).
 

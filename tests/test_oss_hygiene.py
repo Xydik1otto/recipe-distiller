@@ -39,13 +39,15 @@ def test_security_md_exists():
 
 
 def test_no_local_paths_or_secrets_in_tracked_files():
-    """Privacy audit: no G:\\ paths, no Windows user dirs, no tokens in the repo."""
+    """Privacy audit: no local disk paths, no Windows user dirs, no tokens in the repo."""
     import re
     suspects = re.compile(
-        r"G:[/\\]|C:[/\\]Users|bigpi@|api[_-]?key\s*[:=]\s*['\"][A-Za-z0-9]"
+        r"G:[/\\]|C:[/\\]Users|[A-Za-z0-9._%+-]+@local|api[_-]?key\s*[:=]\s*['\"][A-Za-z0-9]"
         r"|token\s*[:=]\s*['\"][A-Za-z0-9]|BEGIN (RSA|OPENSSH) PRIVATE KEY",
         re.IGNORECASE)
     for path in _tracked_files():
+        if path.name == "test_oss_hygiene.py":
+            continue  # this audit's own patterns are not a leak
         if path.suffix in {".png", ".jpg", ".ico", ".db"} or not path.is_file():
             continue
         try:

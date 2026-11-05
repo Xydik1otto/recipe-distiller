@@ -7,6 +7,41 @@
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-11-05
+
+### Added
+- **Browser extension (MV3, unpacked)**: папка `extension/` — кнопка на панелі
+  інструментів відкриває дистилер з URL сторінки рецепта (`/?url=…`,
+  автозапуск extraction), адреса сервера налаштовується через Options.
+- **Substitution hints**: база ~45 типових замін (`butter↔margarine`,
+  `egg→flax egg`, `buttermilk→milk+lemon`…), `GET /api/substitutions` +
+  `POST /api/substitutions/match`, підказки поруч з інгредієнтами та
+  огляд бази в UI; матчинг по межах слів («butter» не спрацьовує всередині
+  «buttermilk»).
+- **Дата додавання + новизна**: явне сортування `sort=new`, дата 📅 біля
+  кожного збереженого рецепта.
+- **Друк списку покупок**: кнопка 🖨 у списку + print-CSS, що показує
+  лише список.
+- **i18n UA/EN**: перемикач UA/EN, автовизначення мови браузера, збереження
+  вибору, словники з парністю ключів. Російську локалізацію не додано
+  (свідоме рішення).
+- **First-run demo**: opt-in банер «Завантажити демо» → 3 демо-рецепти
+  (`POST /api/demo`, ідемпотентно).
+- **INSTALL.md** + `start.bat` / `install.bat` + systemd user unit
+  (`deploy/recipe-distiller.service`).
+- **Packaging**: повний `pyproject.toml`, консольна команда `recipe-distiller`,
+  `pip install -e .` працює.
+- **Data safety**: `GET /api/recipes/export.csv` (one-click CSV) +
+  підтвердження перед видаленням рецепта.
+- **A11y**: aria-labels на всіх іконкових кнопках (з назвою рецепта),
+  зірки-кнопки, `:focus-visible` обведення, підвищений контраст `.muted`.
+- **README.en.md** — англійська версія README.
+
+### OSS
+- `CONTRIBUTING.md`, `.github/ISSUE_TEMPLATE/` (bug + feature, UA/EN),
+  `SECURITY.md`, розширений `.gitignore` (`.env*`, `*.sqlite3`), секція
+  Contributing + GitHub topics у README.
+
 ## [0.4.0] — 2026-11-05
 
 ### Added
