@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Recipe Distiller</string>
+    <string name="title_activity_main">Recipe Distiller</string>
+    <string name="package_name">io.github.xydik1otto.recipe_distiller</string>
+    <string name="custom_url_scheme">io.github.xydik1otto.recipe_distiller</string>
+</resources>

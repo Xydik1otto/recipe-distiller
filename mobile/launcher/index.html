@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recipe Distiller</title>
+<style>
+  :root {
+    --bg: #12141a; --card: #1c2029; --fg: #e8eaf0; --muted: #9aa1af;
+    --accent: #e0562f; --ok: #3fb26f; --err: #d9534f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center;
+    justify-content: center; background: var(--bg); color: var(--fg);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+  .card {
+    width: 100%; max-width: 26rem; background: var(--card);
+    border-radius: 16px; padding: 32px 28px;
+  }
+  h1 { margin: 0 0 4px; font-size: 1.35rem; }
+  .logo { font-size: 2.4rem; }
+  .sub { color: var(--muted); margin: 0 0 22px; font-size: .9rem; }
+  label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 6px; }
+  input {
+    width: 100%; padding: 12px 14px; border-radius: 10px; font-size: 1rem;
+    border: 1px solid #333a47; background: #12141a; color: var(--fg);
+  }
+  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  button {
+    width: 100%; margin-top: 14px; padding: 13px; border: 0; border-radius: 10px;
+    background: var(--accent); color: #fff; font-size: 1rem; font-weight: 600;
+  }
+  button.link {
+    background: none; color: var(--muted); font-weight: 400; margin-top: 10px;
+    text-decoration: underline; padding: 6px;
+  }
+  .status { min-height: 1.4em; margin-top: 12px; font-size: .9rem; color: var(--muted); }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--err); }
+  .hidden { display: none; }
+  footer { margin-top: 26px; font-size: .78rem; color: var(--muted); line-height: 1.45; }
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="logo">🍲</div>
+  <h1 id="title">Recipe Distiller</h1>
+  <p class="sub" id="subtitle">Свій сервер. Свої рецепти.</p>
+
+  <form id="form" class="hidden">
+    <label for="server" id="label">Адреса сервера</label>
+    <input id="server" type="url" inputmode="url" autocomplete="off"
+           placeholder="http://192.168.1.10:8000" required>
+    <button type="submit" id="connect">Підключитися</button>
+  </form>
+
+  <div id="connecting" class="hidden">
+    <div class="status" id="wait"></div>
+    <button type="button" class="link" id="change">Змінити сервер</button>
+  </div>
+
+  <div class="status" id="msg" role="status"></div>
+
+  <footer id="foot">
+    Введіть адресу вашого сервера Recipe Distiller (FastAPI).
+    Доступ ззовні — через Tailscale / WireGuard.
+  </footer>
+</main>
+
+<script>
+// i18n UA/EN (російську локалізацію не додано — свідоме рішення проєкту).
+var T = {
+  uk: {
+    sub: 'Свій сервер. Свої рецепти.',
+    label: 'Адреса сервера',
+    connect: 'Підключитися',
+    wait: 'Підключення до {url}…',
+    ok: 'Сервер знайдено. Відкриваю…',
+    err: 'Не вдалося зʼєднатися з {url}. Перевірте адресу та мережу.',
+    change: 'Змінити сервер',
+    foot: 'Введіть адресу вашого сервера Recipe Distiller (FastAPI). ' +
+          'Доступ ззовні — через Tailscale / WireGuard.'
+  },
+  en: {
+    sub: 'Your server. Your recipes.',
+    label: 'Server address',
+    connect: 'Connect',
+    wait: 'Connecting to {url}…',
+    ok: 'Server found. Opening…',
+    err: 'Could not reach {url}. Check the address and your network.',
+    change: 'Change server',
+    foot: 'Enter the address of your Recipe Distiller (FastAPI) server. ' +
+          'For remote access use Tailscale / WireGuard.'
+  }
+};
+var lang = (navigator.language || 'en').slice(0, 2).toLowerCase() === 'uk' ? 'uk' : 'en';
+var t = T[lang];
+document.documentElement.lang = lang;
+
+function fill(map) {
+  document.getElementById('subtitle').textContent = map.sub;
+  document.getElementById('label').textContent = map.label;
+  document.getElementById('connect').textContent = map.connect;
+  document.getElementById('change').textContent = map.change;
+  document.getElementById('foot').textContent = map.foot;
+}
+fill(t);
+
+// Preferences-плагін у вебвʼю Capacitor; localStorage — фолбек у звичайному браузері.
+var store = {
+  get: function () {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) {
+      return window.Capacitor.Plugins.Preferences.get({ key: 'serverUrl' }).then(function (r) {
+        return r.value || '';
+      });
+    }
+    return Promise.resolve(localStorage.getItem('serverUrl') || '');
+  },
+  set: function (url) {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences) {
+      return window.Capacitor.Plugins.Preferences.set({ key: 'serverUrl', value: url });
+    }
+    localStorage.setItem('serverUrl', url);
+    return Promise.resolve();
+  }
+};
+
+function normalize(raw) {
+  var url = (raw || '').trim();
+  if (!url) return '';
+  if (!/^https?:\/\//i.test(url)) url = 'http://' + url;
+  return url.replace(/\/+$/, '');
+}
+
+function show(id) {
+  ['form', 'connecting'].forEach(function (el) {
+    document.getElementById(el).classList.toggle('hidden', el !== id);
+  });
+}
+
+function probe(url) {
+  var ctrl = new AbortController();
+  var timer = setTimeout(function () { ctrl.abort(); }, 4000);
+  return fetch(url + '/api/recipes?limit=1', { signal: ctrl.signal, mode: 'no-cors' })
+    .then(function () { clearTimeout(timer); return true; })
+    .catch(function () { clearTimeout(timer); return false; });
+}
+
+function connect(url) {
+  show('connecting');
+  document.getElementById('wait').textContent = t.wait.replace('{url}', url);
+  document.getElementById('msg').textContent = '';
+  document.getElementById('msg').className = 'status';
+  probe(url).then(function (reachable) {
+    if (reachable) {
+      document.getElementById('wait').textContent = t.ok;
+      store.set(url).then(function () {
+        setTimeout(function () { window.location.replace(url); }, 400);
+      });
+    } else {
+      document.getElementById('msg').textContent = t.err.replace('{url}', url);
+      document.getElementById('msg').className = 'status err';
+      show('form');
+    }
+  });
+}
+
+document.getElementById('form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  var url = normalize(document.getElementById('server').value);
+  if (!url) return;
+  document.getElementById('server').value = url;
+  connect(url);
+});
+
+document.getElementById('change').addEventListener('click', function () {
+  show('form');
+  document.getElementById('server').focus();
+});
+
+store.get().then(function (saved) {
+  if (saved) connect(saved);
+  else {
+    show('form');
+    document.getElementById('server').focus();
+  }
+});
+</script>
+</body>
+</html>
