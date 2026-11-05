@@ -58,6 +58,10 @@ class SaveRequest(BaseModel):
     url: HttpUrl
 
 
+class ExtractUrlsRequest(BaseModel):
+    urls: List[HttpUrl]
+
+
 @app.get("/", response_class=HTMLResponse)
 def index():
     return FileResponse(STATIC_DIR / "index.html")
@@ -303,6 +307,35 @@ def export_recipes_csv():
     from fastapi.responses import Response
     return Response(buf.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": 'attachment; filename="recipes.csv"'})
+
+
+@app.post("/api/recipes/import-urls")
+def import_from_urls(req: ExtractUrlsRequest):
+    """Bulk import: distill a list of recipe URLs one by one.
+
+    Per-URL result instead of all-or-nothing: a broken page must not lose
+    the rest of the batch. Capped at 25 URLs per call.
+    """
+    if not req.urls or len(req.urls) > 25:
+        raise HTTPException(status_code=422, detail="Provide 1..25 URLs.")
+    conn = db.connect()
+    results, imported = [], 0
+    for raw in req.urls:
+        url = str(raw)
+        try:
+            html = fetch_html(url)
+            recipe = extract_from_html(html, url)
+            if not recipe:
+                raise RuntimeError("No recipe found on this page.")
+            rid = db.save_recipe(conn, url, recipe)
+            db.cache_put(conn, url, recipe)
+            results.append({"url": url, "ok": True, "id": rid,
+                            "title": recipe.get("title") or url})
+            imported += 1
+        except RuntimeError as e:
+            results.append({"url": url, "ok": False, "error": str(e)})
+    return {"imported": imported, "failed": len(results) - imported,
+            "results": results}
 
 
 @app.post("/api/demo")

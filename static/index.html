@@ -115,6 +115,7 @@
   <a href="/api/recipes/export" download="recipes.json" data-i18n="export_link">⬇ Export JSON</a>
   <a href="/api/recipes/export.csv" download="recipes.csv" data-i18n="export_csv">⬇ Export CSV</a>
   <button type="button" id="importbtn" data-i18n="import_btn">⬆ Import JSON</button>
+  <button type="button" id="importurlsbtn" data-i18n="import_urls_btn">⬆ Import URLs</button>
   <input type="file" id="importfile" accept="application/json,.json" hidden>
 </p>
 
@@ -346,6 +347,21 @@ $('#shopbtn').onclick = async () => {
     body: JSON.stringify({recipe_ids: ids})});
   const d = await r.json();
   renderShopList(t('shop_list'), [...d.items, ...d.unparsed]);
+};
+
+$('#importurlsbtn').onclick = async () => {
+  const raw = prompt(t('import_urls_prompt'), '');
+  if (!raw) return;
+  const urls = raw.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+  if (!urls.length) return;
+  $('#status').textContent = t('distilling');
+  const r = await fetch('/api/recipes/import-urls', {method:'POST',
+    headers:{'Content-Type':'application/json'}, body: JSON.stringify({urls})});
+  const d = await r.json();
+  $('#status').textContent = r.ok
+    ? `${t('imported')}: ${d.imported}` + (d.failed ? ` (+${d.failed} ✕)` : '')
+    : (t('error_suffix') + ' ' + (d.detail || 'error'));
+  loadSaved();
 };
 
 $('#importbtn').onclick = () => $('#importfile').click();
