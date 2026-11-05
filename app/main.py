@@ -239,18 +239,44 @@ def print_view(recipe_id: int):
     if not item:
         raise HTTPException(status_code=404, detail="Recipe not found.")
     r = item["recipe"]
+    from html import escape
+
     from .convert import annotate_ingredient
-    ings = "".join(f"<li>{annotate_ingredient(i)}</li>" for i in r.get("ingredients", []))
-    steps = "".join(f"<li>{s}</li>" for s in r.get("steps", []))
-    return f"""<!doctype html><html><head><meta charset="utf-8">
-<title>{item['title']}</title>
-<style>body{{font-family:Georgia,serif;max-width:640px;margin:2rem auto;line-height:1.5}}
-h1{{border-bottom:2px solid #333}} @media print {{ button {{ display:none }} }}</style>
-</head><body onload="window.print()">
-<button onclick="window.print()">Print</button>
-<h1>{item['title']}</h1>
-<p>{r.get('servings') or ''} {r.get('total_time') and '· ' + r.get('total_time') or ''}</p>
+    title = escape(item["title"])
+    url = escape(item["url"], quote=True)
+    ings = "".join(f"<li>{annotate_ingredient(escape(str(i)))}</li>"
+                   for i in r.get("ingredients", []))
+    steps = "".join(f"<li>{escape(str(s))}</li>" for s in r.get("steps", []))
+    meta = " · ".join(x for x in (r.get("servings"),
+                                  r.get("total_time") and f"total: {r.get('total_time')}")
+                      if x)
+    return f"""<!doctype html><html lang="uk"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<style>
+  body {{ font-family: Georgia, serif; max-width: 640px; margin: 2rem auto;
+         line-height: 1.55; color: #111; padding: 0 1rem; }}
+  h1 {{ border-bottom: 2px solid #333; padding-bottom: .3rem; margin-bottom: .3rem; }}
+  .meta {{ color: #555; margin-top: 0; }}
+  li {{ margin: .3rem 0; }}
+  .toolbar {{ margin-bottom: 1rem; }}
+  footer {{ margin-top: 2rem; border-top: 1px solid #999; font-size: .85rem; color: #555;
+            word-break: break-all; }}
+  /* --- print: clean card, no chrome, no awkward page breaks --- */
+  @media print {{
+    body {{ margin: 0 auto; max-width: none; font-size: 12pt; padding: 0; }}
+    .toolbar {{ display: none; }}
+    a {{ color: #111; text-decoration: none; }}
+    li {{ break-inside: avoid; page-break-inside: avoid; }}
+    h1, h2 {{ break-after: avoid; page-break-after: avoid; }}
+    footer {{ border-top: 1px solid #333; }}
+  }}
+</style>
+</head><body>
+<div class="toolbar"><button onclick="window.print()">🖨 Друк</button></div>
+<h1>{title}</h1>
+<p class="meta">{escape(meta)}</p>
 <h2>Ingredients</h2><ul>{ings}</ul>
 <h2>Steps</h2><ol>{steps}</ol>
-<p><a href="{item['url']}">Original: {item['url']}</a></p>
+<footer>Original: <a href="{url}">{url}</a> — Recipe Distiller</footer>
 </body></html>"""
