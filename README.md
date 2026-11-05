@@ -178,6 +178,22 @@ javascript:(async()=>{const b='http://127.0.0.1:8000';try{const r=await fetch(b+
 - Розширення для браузера (Manifest V3, unpacked): папка **[extension/](extension/)**,
   інструкція — [extension/README.md](extension/README.md).
 
+## Мобільні застосунки 📱
+
+Capacitor-оболонки для Android та iOS: застосунок не має власного UI, а
+підключається до **вашого сервера** — адреса вводиться на splash-екрані при
+першому запуску.
+
+- **Android**: готовий APK у [Releases](https://github.com/bigpi/recipe-distiller/releases)
+  (або артефакти [android-build](https://github.com/bigpi/recipe-distiller/actions/workflows/android-build.yml),
+  30 днів) → sideload безкоштовно; minSdk 24 (Android 7.0) → targetSdk 35.
+- **iOS**: unsigned-збірка з [ios-build](https://github.com/bigpi/recipe-distiller/actions/workflows/ios-build.yml)
+  → встановлення через AltStore / Sideloadly (безкоштовно, re-sign кожні
+  7 днів; App Store вимагає Apple Developer $99/рік — поза бюджетом проєкту),
+  iOS 14.0+.
+- **Віддалений доступ**: Tailscale / WireGuard (free) — інструкція в
+  **[MOBILE.md](MOBILE.md)** (UA + EN).
+
 ## Contributing
 
 Баги, ідеї, PR — вітаємо: **[CONTRIBUTING.md](CONTRIBUTING.md)**.

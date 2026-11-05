@@ -7,6 +7,16 @@
 
 ## [Unreleased]
 
+### Added
+- **Мобільні застосунки (Capacitor 6)**: оболонки `android/` (minSdk 24,
+  targetSdk 35, єдиний дозвіл INTERNET) та `ios/` (iOS 14.0, ATS-дозвіл http
+  для LAN/Tailscale) — без bundled UI: splash-екран із полем «Адреса сервера»
+  (збереження через `@capacitor/preferences`), підключення до власного
+  self-hosted сервера. CI: `android-build.yml` (APK-артефакт + attach до
+  Release на тег) та `ios-build.yml` (macOS, unsigned `.app`), retention
+  30 днів. Інструкції — **MOBILE.md** (UA+EN): sideload Android, AltStore
+  iOS, Tailscale; README — розділ «Мобільні застосунки».
+
 ### Removed
 - Monetization scaffolding — проєкт 100% безкоштовний open-source:
   видалено `.github/FUNDING.yml` (GitHub Sponsors), секцію «Монетизація»

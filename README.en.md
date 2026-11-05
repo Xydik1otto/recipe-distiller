@@ -69,6 +69,22 @@ any recipe page and the distiller opens with that URL, extracting immediately.
 Install: `chrome://extensions` → Developer mode → **Load unpacked** → pick
 `extension/`. Details: [extension/README.md](extension/README.md).
 
+## Mobile apps 📱
+
+Capacitor shells for Android and iOS: the app has no bundled UI — it connects
+to **your own server**, whose address you enter on the splash screen at first
+launch.
+
+- **Android**: a ready APK in [Releases](https://github.com/bigpi/recipe-distiller/releases)
+  (or artifacts of [android-build](https://github.com/bigpi/recipe-distiller/actions/workflows/android-build.yml),
+  30 days) → free sideloading; minSdk 24 (Android 7.0) → targetSdk 35.
+- **iOS**: an unsigned build from [ios-build](https://github.com/bigpi/recipe-distiller/actions/workflows/ios-build.yml)
+  → install via AltStore / Sideloadly (free, re-sign every 7 days; the App
+  Store requires Apple Developer at $99/yr — out of the project's budget),
+  iOS 14.0+.
+- **Remote access**: Tailscale / WireGuard (free) — see
+  **[MOBILE.md](MOBILE.md)** (UA + EN).
+
 ## Features
 
 - **Extraction pipeline**: JSON-LD (with `@graph`, nested HowToSection/HowToStep)
