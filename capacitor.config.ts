@@ -8,12 +8,11 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * (mobile/launcher/index.html) і зберігається через @capacitor/preferences.
  *
  * appId: Java-пакет не може містити дефісів, тому простір імен —
- * io.github.xydik1otto.recipe_distiller; у android/app/build.gradle
- * applicationId перевизначено на io.github.xydik1otto.recipe-distiller
- * (валідний applicationId, на відміну від namespace).
+ * io.github.xydik1otto.recipedistiller (без дефіса, збігається з
+ * namespace/applicationId в android/app/build.gradle).
  */
 const config: CapacitorConfig = {
-  appId: 'io.github.xydik1otto.recipe_distiller',
+  appId: 'io.github.xydik1otto.recipedistiller',
   appName: 'Recipe Distiller',
   webDir: 'mobile/launcher',
   server: {

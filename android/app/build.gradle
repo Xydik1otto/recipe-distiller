@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "io.github.xydik1otto.recipe_distiller"
+    namespace "io.github.xydik1otto.recipedistiller"
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.github.xydik1otto.recipe-distiller"
+        applicationId "io.github.xydik1otto.recipedistiller"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

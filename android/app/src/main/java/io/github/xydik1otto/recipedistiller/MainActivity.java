@@ -1,4 +1,4 @@
-package io.github.xydik1otto.recipe_distiller;
+package io.github.xydik1otto.recipedistiller;
 
 import com.getcapacitor.BridgeActivity;
 
