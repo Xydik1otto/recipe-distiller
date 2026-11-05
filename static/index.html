@@ -33,6 +33,9 @@
   .stars { white-space: nowrap; cursor: pointer; color: #bbb; font-size: .95rem; letter-spacing: 1px; }
   .stars .star.on { color: #e2a400; }
   .conv { color: #666; font-size: .85em; }
+  label.check { display: block; cursor: pointer; }
+  label.check input { accent-color: #2e7d32; margin-right: .3rem; }
+  label.check input:checked ~ .txt { text-decoration: line-through; color: #777; }
   pre { white-space: pre-wrap; }
 </style>
 </head>
@@ -82,6 +85,7 @@
     <p class="actions">
       <input type="number" class="target" min="1" step="0.5" placeholder="порцій" style="width:6rem">
       <button class="doscale">× перерахувати</button>
+      <button class="uncheck" title="зняти всі галочки з інгредієнтів">☑ скидання</button>
     </p>
     <p class="actions">
       <button class="save">💾 Save</button>
@@ -102,19 +106,36 @@ function card(recipe, url) {
                 recipe.cook_time && ('cook: ' + recipe.cook_time),
                 recipe.total_time && ('total: ' + recipe.total_time)].filter(Boolean).join(' · ');
   $('.meta', node).textContent = meta;
-  for (const i of recipe.ingredients || []) $('.ings', node).insertAdjacentHTML('beforeend', `<li>${esc(i)}</li>`);
+  // ingredient checklist: checked state survives reloads in localStorage
+  const ckKey = 'rd-check:' + (recipe.canonical_url || url || recipe.title || 'recipe');
+  let checked = {};
+  try { checked = JSON.parse(localStorage.getItem(ckKey) || '{}') || {}; } catch {}
+  const saveCk = () => { try { localStorage.setItem(ckKey, JSON.stringify(checked)); } catch {} };
+  for (const [idx, i] of (recipe.ingredients || []).entries()) {
+    const mark = checked[idx] ? ' checked' : '';
+    $('.ings', node).insertAdjacentHTML('beforeend',
+      `<li><label class="check"><input type="checkbox" data-ing="${idx}"${mark}> <span class="txt">${esc(i)}</span> <span class="conv" data-conv="${idx}"></span></label></li>`);
+  }
+  node.querySelectorAll('input[data-ing]').forEach(cb => cb.onchange = () => {
+    checked[cb.dataset.ing] = cb.checked;
+    if (!cb.checked) delete checked[cb.dataset.ing];
+    saveCk();
+  });
   for (const s of recipe.steps || []) $('.steps', node).insertAdjacentHTML('beforeend', `<li>${esc(s)}</li>`);
   // cups→ml→g annotations for typical ingredients (flour, sugar, butter…)
   if ((recipe.ingredients || []).length) {
     fetch('/api/convert', {method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ingredients: recipe.ingredients})})
       .then(r => r.json())
-      .then(d => node.querySelectorAll('.ings li').forEach((li, idx) => {
-        const c = d.items[idx] && d.items[idx].converted;
-        if (c) li.insertAdjacentHTML('beforeend', ` <span class="conv">${esc(c)}</span>`);
+      .then(d => (d.items || []).forEach((it, idx) => {
+        if (it.converted) $(`[data-conv="${idx}"]`, node).textContent = ' ' + it.converted;
       }))
       .catch(() => {});
   }
+  $('.uncheck', node).onclick = () => {
+    checked = {}; saveCk();
+    node.querySelectorAll('input[data-ing]').forEach(cb => cb.checked = false);
+  };
   $('.orig', node).href = url;
   $('.json', node).textContent = JSON.stringify(recipe, null, 2);
   $('.save', node).onclick = async () => {
