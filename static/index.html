@@ -26,6 +26,7 @@
   .heart.on { color: #e0245e; }
   .stars { white-space: nowrap; cursor: pointer; color: #bbb; font-size: .95rem; letter-spacing: 1px; }
   .stars .star.on { color: #e2a400; }
+  .conv { color: #666; font-size: .85em; }
   pre { white-space: pre-wrap; }
 </style>
 </head>
@@ -97,6 +98,17 @@ function card(recipe, url) {
   $('.meta', node).textContent = meta;
   for (const i of recipe.ingredients || []) $('.ings', node).insertAdjacentHTML('beforeend', `<li>${esc(i)}</li>`);
   for (const s of recipe.steps || []) $('.steps', node).insertAdjacentHTML('beforeend', `<li>${esc(s)}</li>`);
+  // cups→ml→g annotations for typical ingredients (flour, sugar, butter…)
+  if ((recipe.ingredients || []).length) {
+    fetch('/api/convert', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ingredients: recipe.ingredients})})
+      .then(r => r.json())
+      .then(d => node.querySelectorAll('.ings li').forEach((li, idx) => {
+        const c = d.items[idx] && d.items[idx].converted;
+        if (c) li.insertAdjacentHTML('beforeend', ` <span class="conv">${esc(c)}</span>`);
+      }))
+      .catch(() => {});
+  }
   $('.orig', node).href = url;
   $('.json', node).textContent = JSON.stringify(recipe, null, 2);
   $('.save', node).onclick = async () => {

@@ -131,6 +131,19 @@ def scale_saved(recipe_id: int, req: ScaleServingsRequest):
     return {"recipe": scaled}
 
 
+class ConvertRequest(BaseModel):
+    ingredients: List[str]
+
+
+@app.post("/api/convert")
+def convert_units(req: ConvertRequest):
+    """cups→ml→g annotations for typical ingredients ('1/2 cup flour' → '≈ 60 g')."""
+    from .convert import convert_ingredient
+    items = [{"original": i, "converted": convert_ingredient(i)}
+             for i in req.ingredients]
+    return {"items": items}
+
+
 class ShoppingListRequest(BaseModel):
     recipe_ids: List[int]
 
@@ -226,7 +239,8 @@ def print_view(recipe_id: int):
     if not item:
         raise HTTPException(status_code=404, detail="Recipe not found.")
     r = item["recipe"]
-    ings = "".join(f"<li>{i}</li>" for i in r.get("ingredients", []))
+    from .convert import annotate_ingredient
+    ings = "".join(f"<li>{annotate_ingredient(i)}</li>" for i in r.get("ingredients", []))
     steps = "".join(f"<li>{s}</li>" for s in r.get("steps", []))
     return f"""<!doctype html><html><head><meta charset="utf-8">
 <title>{item['title']}</title>
