@@ -14,6 +14,8 @@ from typing import Dict, List, Optional
 
 from bs4 import BeautifulSoup
 
+from .quantities import normalize_ingredient, parse_ingredient
+
 MOBILE_UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) "
              "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1")
 DESKTOP_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -222,6 +224,15 @@ def extract_heuristics(soup: BeautifulSoup) -> Optional[Dict]:
     }
 
 
+def _augment_ingredients(recipe: Dict) -> Dict:
+    """Normalize amounts in ingredient text + add structured ingredients_parsed."""
+    ings = [normalize_ingredient(i) for i in recipe.get("ingredients") or []]
+    recipe["ingredients"] = ings
+    if ings:
+        recipe["ingredients_parsed"] = [parse_ingredient(i) for i in ings]
+    return recipe
+
+
 def extract_from_html(html: str, url: str) -> Optional[Dict]:
     """Full pipeline over raw HTML. Returns a clean recipe dict or None."""
     soup = BeautifulSoup(html, "html.parser")
@@ -236,5 +247,6 @@ def extract_from_html(html: str, url: str) -> Optional[Dict]:
     if not recipe:
         return None
     recipe.setdefault("canonical_url", url)
+    _augment_ingredients(recipe)
     # drop empty fields for a clean payload
     return {k: v for k, v in recipe.items() if v}

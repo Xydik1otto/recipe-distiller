@@ -26,6 +26,7 @@ def client(tmp_path, monkeypatch):
         mapping = {
             "https://example.com/borscht": load("jsonld.html"),
             "https://example.com/cake": load("jsonld_sections.html"),
+            "https://example.com/banana": load("fractions.html"),
             "https://example.com/pancakes": load("microdata.html"),
             "https://example.com/soup": load("heuristic.html"),
             "https://example.com/about": load("not_a_recipe.html"),
