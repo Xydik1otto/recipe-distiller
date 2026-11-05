@@ -34,6 +34,8 @@
   .stars .star.on { color: #e2a400; }
   .conv { color: #666; font-size: .85em; }
   .subst { color: #0b6e3f; font-size: .85em; }
+  .langbtn { padding: .2rem .6rem; font-size: .85rem; border-radius: 8px; }
+  .langbtn.on { background: #2e7d32; color: #fff; border-color: #2e7d32; }
   #substbase li { margin: .25rem 0; }
   @media print {
     body > :not(#shoplist) { display: none !important; }   /* print = shopping list only */
@@ -51,43 +53,48 @@
 </head>
 <body>
 <h1>🍲 Recipe Distiller</h1>
-<p class="muted">Встав посилання на рецепт — отримай лише рецепт, без життя-історій та реклами.</p>
+<p class="muted" data-i18n="tagline">Встав посилання на рецепт — отримай лише рецепт, без життя-історій та реклами.</p>
+
+<p id="langbar" aria-label="Мова інтерфейсу / Interface language">
+  <button type="button" class="langbtn on" data-lang="ua" aria-label="Українська">UA</button>
+  <button type="button" class="langbtn" data-lang="en" aria-label="English">EN</button>
+</p>
 
 <form id="f">
-  <input type="url" id="url" placeholder="https://example.com/borscht" required>
-  <button type="submit">Extract</button>
+  <input type="url" id="url" placeholder="https://example.com/borscht" required data-i18n-ph="url_ph">
+  <button type="submit" data-i18n="extract">Extract</button>
 </form>
 <p id="status" class="muted"></p>
 
 <div id="result" class="hidden"></div>
 
 <details id="substblock">
-  <summary>🔁 Заміни інгредієнтів (масло ↔ маргарин, тощо)</summary>
+  <summary data-i18n="subst_summary">🔁 Заміни інгредієнтів (масло ↔ маргарин, тощо)</summary>
   <ul id="substbase" class="muted"><li>завантаження…</li></ul>
 </details>
 
-<h2>📖 Моя книга рецептів</h2>
+<h2 data-i18n="book">📖 Моя книга рецептів</h2>
 <form id="searchf" style="display:flex;gap:.5rem;margin:.5rem 0;flex-wrap:wrap;align-items:center">
-  <input type="search" id="q" placeholder="Пошук: назва або інгредієнт…" style="flex:1;min-width:10rem;padding:.5rem">
-  <input type="search" id="tagf" placeholder="тег…" style="width:8rem;padding:.5rem">
+  <input type="search" id="q" placeholder="Пошук: назва або інгредієнт…" style="flex:1;min-width:10rem;padding:.5rem" data-i18n-ph="search_ph">
+  <input type="search" id="tagf" placeholder="тег…" style="width:8rem;padding:.5rem" data-i18n-ph="tag_ph">
   <select id="sort" style="padding:.5rem">
-    <option value="new">спочатку нові (дата додавання)</option>
-    <option value="rating">за рейтингом</option>
-    <option value="title">за назвою</option>
+    <option value="new" data-i18n="sort_new">спочатку нові (дата додавання)</option>
+    <option value="rating" data-i18n="sort_rating">за рейтингом</option>
+    <option value="title" data-i18n="sort_title">за назвою</option>
   </select>
-  <label style="white-space:nowrap"><input type="checkbox" id="favonly"> лише ♥</label>
+  <label style="white-space:nowrap"><input type="checkbox" id="favonly"> <span data-i18n="favonly">лише ♥</span></label>
 </form>
 <div id="saved"></div>
-<p><button type="button" id="shopbtn">🛒 Список покупок (обрані)</button></p>
+<p><button type="button" id="shopbtn" data-i18n="shop_selected">🛒 Список покупок (обрані)</button></p>
 <div id="shoplist" class="card hidden"></div>
-<h2>📅 План на тиждень</h2>
-<p class="muted">Перетягни рецепт зі списку вище на день — або клікни слот, щоб призначити перший збережений.</p>
+<h2 data-i18n="plan_title">📅 План на тиждень</h2>
+<p class="muted" data-i18n="plan_hint">Перетягни рецепт зі списку вище на день — або клікни слот, щоб призначити перший збережений.</p>
 <div id="plan"></div>
-<p><button type="button" id="planshopbtn">🛒 Список покупок з плану</button></p>
+<p><button type="button" id="planshopbtn" data-i18n="shop_plan">🛒 Список покупок з плану</button></p>
 
 <p>
-  <a href="/api/recipes/export" download="recipes.json">⬇ Export JSON</a>
-  <button type="button" id="importbtn">⬆ Import JSON</button>
+  <a href="/api/recipes/export" download="recipes.json" data-i18n="export_link">⬇ Export JSON</a>
+  <button type="button" id="importbtn" data-i18n="import_btn">⬆ Import JSON</button>
   <input type="file" id="importfile" accept="application/json,.json" hidden>
 </p>
 
@@ -95,27 +102,30 @@
   <div class="card">
     <h2 class="title"></h2>
     <p class="meta"></p>
-    <h3>Ingredients</h3><ul class="ings"></ul>
-    <h3>Steps</h3><ol class="steps"></ol>
+    <h3 data-i18n="ingredients">Ingredients</h3><ul class="ings"></ul>
+    <h3 data-i18n="steps">Steps</h3><ol class="steps"></ol>
     <p class="actions">
-      <input type="number" class="target" min="1" step="0.5" placeholder="порцій" style="width:6rem">
-      <button class="doscale">× перерахувати</button>
-      <button class="uncheck" title="зняти всі галочки з інгредієнтів">☑ скидання</button>
+      <input type="number" class="target" min="1" step="0.5" placeholder="порцій" style="width:6rem" data-i18n-ph="servings_ph">
+      <button class="doscale" data-i18n="rescale">× перерахувати</button>
+      <button class="uncheck" title="зняти всі галочки з інгредієнтів" data-i18n="reset_checks">☑ скидання</button>
     </p>
     <p class="actions">
-      <button class="save">💾 Save</button>
-      <a class="orig" target="_blank" rel="noopener">original ↗</a>
+      <button class="save" data-i18n="save">💾 Save</button>
+      <a class="orig" target="_blank" rel="noopener" data-i18n="original">original ↗</a>
       <details><summary>JSON</summary><pre class="json"></pre></details>
     </p>
   </div>
 </template>
 
+<script src="/i18n.js"></script>
 <script>
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
 
 function card(recipe, url) {
   const node = $('#tpl').content.cloneNode(true);
+  node.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  node.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   $('.title', node).textContent = recipe.title || url;
   const meta = [recipe.servings, recipe.prep_time && ('prep: ' + recipe.prep_time),
                 recipe.cook_time && ('cook: ' + recipe.cook_time),
@@ -154,7 +164,7 @@ function card(recipe, url) {
         if (it.substitutes.length) {
           const span = $(`[data-sub="${idx}"]`, node);
           span.textContent = ' ↔ ' + it.substitutes.join(' · ');
-          span.title = 'Заміна: ' + it.substitutes.join(' · ');
+          span.title = t('subst_title') + ': ' + it.substitutes.join(' · ');
         }
       }))
       .catch(() => {});
@@ -167,7 +177,7 @@ function card(recipe, url) {
   $('.json', node).textContent = JSON.stringify(recipe, null, 2);
   $('.save', node).onclick = async () => {
     const r = await fetch('/api/recipes', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
-    $('.save', node).textContent = r.ok ? '✅ Saved' : '❌ Error';
+    $('.save', node).textContent = r.ok ? t('saved_ok') : t('saved_err');
     if (r.ok) loadSaved();
   };
   $('.doscale', node).onclick = async () => {
@@ -190,17 +200,17 @@ async function loadSaved() {
   const r = await fetch('/api/recipes?q=' + q + '&tag=' + tag + '&sort=' + sort + fav);
   const { recipes } = await r.json();
   const box = $('#saved');
-  box.innerHTML = recipes.length ? '' : '<p class="muted">Ще нічого не збережено.</p>';
+  box.innerHTML = recipes.length ? '' : `<p class="muted">${t('empty_book')}</p>`;
   for (const it of recipes) {
     const tags = (it.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
     const stars = [1,2,3,4,5].map(n =>
       `<span class="star${n <= it.rating ? ' on' : ''}" data-star="${it.id}:${n}" title="${n}★">★</span>`).join('');
     box.insertAdjacentHTML('beforeend',
       `<div class="saved-item" draggable="true" data-rid="${it.id}"><span><input type="checkbox" class="pick" value="${it.id}">
-       <button class="heart${it.favorite ? ' on' : ''}" data-fav="${it.id}" title="улюблене">${it.favorite ? '♥' : '♡'}</button>
+       <button class="heart${it.favorite ? ' on' : ''}" data-fav="${it.id}" title="${t('favorite_title')}">${it.favorite ? '♥' : '♡'}</button>
        <a href="/print/${it.id}">${esc(it.title)}</a> <span class="stars">${stars}</span> ${tags}
        <span class="added muted"> 📅 ${new Date(it.saved_at * 1000).toLocaleDateString()}</span></span>
-       <span><button data-tag="${it.id}" title="теги">🏷</button>
+       <span><button data-tag="${it.id}" title="${t('tags_title')}">🏷</button>
        <button data-del="${it.id}">🗑</button></span></div>`);
   }
   box.querySelectorAll('button[data-del]').forEach(b => b.onclick = async () => {
@@ -222,7 +232,7 @@ async function loadSaved() {
   });
   box.querySelectorAll('button[data-tag]').forEach(b => b.onclick = async () => {
     const cur = recipes.find(x => x.id == b.dataset.tag);
-    const val = prompt('Теги через кому:', (cur.tags || []).join(', '));
+    const val = prompt(t('tags_prompt'), (cur.tags || []).join(', '));
     if (val === null) return;
     await fetch('/api/recipes/' + b.dataset.tag + '/tags', {method:'PUT',
       headers:{'Content-Type':'application/json'},
@@ -237,7 +247,7 @@ $('#tagf').oninput = loadSaved;
 $('#sort').onchange = loadSaved;
 $('#favonly').onchange = loadSaved;
 
-const DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
+const DAYS = () => t('days');  // localized weekday abbreviations
 
 async function loadPlan() {
   const { slots } = await (await fetch('/api/plan')).json();
@@ -246,8 +256,8 @@ async function loadPlan() {
   slots.forEach(s => {
     const div = document.createElement('div');
     div.className = 'plan-slot';
-    div.innerHTML = `<span class="day">${DAYS[s.slot]}</span>
-      <span class="meal">${s.title ? `<a href="/print/${s.recipe_id}">${esc(s.title)}</a>` : '— вільно —'}</span>
+    div.innerHTML = `<span class="day">${DAYS()[s.slot]}</span>
+      <span class="meal">${s.title ? `<a href="/print/${s.recipe_id}">${esc(s.title)}</a>` : t('free_slot')}</span>
       ${s.recipe_id ? '<button data-clear="' + s.slot + '">✕</button>' : ''}`;
     div.ondragover = e => { e.preventDefault(); div.classList.add('over'); };
     div.ondragleave = () => div.classList.remove('over');
@@ -283,14 +293,14 @@ function renderShopList(title, items) {
   box.classList.remove('hidden');
   box.innerHTML = `<h3>🛒 ${esc(title)}</h3>` +
     (items.length ? '<ul>' + items.map(i => `<li>${esc(i)}</li>`).join('') + '</ul>'
-                  : '<p class="muted">Список порожній.</p>') +
-    '<p><button type="button" onclick="window.print()">🖨 Друк списку</button></p>';
+                  : `<p class="muted">${t('empty_list')}</p>`) +
+    `<p><button type="button" onclick="window.print()">${t('print_list')}</button></p>`;
 }
 
 $('#planshopbtn').onclick = async () => {
   const r = await fetch('/api/plan/shopping-list');
   const d = await r.json();
-  renderShopList(`Список покупок з плану (${d.slots_used} рецептів)`, [...d.items, ...d.unparsed]);
+  renderShopList(`${t('shop_list_plan')} (${d.slots_used} ${t('recipes_suffix')})`, [...d.items, ...d.unparsed]);
 };
 
 $('#shopbtn').onclick = async () => {
@@ -300,7 +310,7 @@ $('#shopbtn').onclick = async () => {
   const r = await fetch('/api/shopping-list', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({recipe_ids: ids})});
   const d = await r.json();
-  renderShopList('Список покупок', [...d.items, ...d.unparsed]);
+  renderShopList(t('shop_list'), [...d.items, ...d.unparsed]);
 };
 
 $('#importbtn').onclick = () => $('#importfile').click();
@@ -312,17 +322,17 @@ $('#importfile').onchange = async () => {
     const r = await fetch('/api/recipes/import', {method:'POST',
       headers:{'Content-Type':'application/json'}, body: JSON.stringify(items)});
     const data = await r.json();
-    $('#status').textContent = r.ok ? `⬆ Імпортовано: ${data.imported}` : ('❌ ' + (data.detail || 'error'));
-  } catch { $('#status').textContent = '❌ Невалідний JSON'; }
+    $('#status').textContent = r.ok ? `${t('imported')}: ${data.imported}` : (t('error_suffix') + ' ' + (data.detail || 'error'));
+  } catch { $('#status').textContent = t('invalid_json'); }
   $('#importfile').value = '';
   loadSaved();
 };
 
 async function distill(url) {
-  $('#status').textContent = '⏳ Дістаю рецепт…';
+  $('#status').textContent = t('distilling');
   const r = await fetch('/api/extract', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
   const data = await r.json();
-  $('#status').textContent = r.ok ? '' : ('❌ ' + (data.detail || 'error'));
+  $('#status').textContent = r.ok ? '' : (t('error_suffix') + ' ' + (data.detail || 'error'));
   const box = $('#result');
   box.innerHTML = ''; box.classList.remove('hidden');
   if (r.ok) box.appendChild(card(data.recipe, url));
@@ -346,6 +356,13 @@ $('#substblock').addEventListener('toggle', () => {
       .map(([k, subs]) => `<li><b>${esc(k)}</b> ↔ ${esc(subs.join(' · '))}</li>`).join('');
     $('#substbase').dataset.loaded = '1';
   }).catch(() => { $('#substbase').innerHTML = '<li>не вдалося завантажити</li>'; });
+});
+
+// i18n: apply the detected/persisted language, wire the UA/EN toggle
+applyI18n();
+document.querySelectorAll('.langbtn').forEach(b => {
+  b.onclick = () => setLang(b.dataset.lang);
+  b.classList.toggle('on', b.dataset.lang === currentLang());
 });
 
 loadSaved();

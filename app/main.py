@@ -34,6 +34,12 @@ def service_worker():
     return FileResponse(STATIC_DIR / "sw.js", media_type="application/javascript")
 
 
+@app.get("/i18n.js", response_class=FileResponse,
+         responses={200: {"content": {"application/javascript": {}}}})
+def i18n_js():
+    return FileResponse(STATIC_DIR / "i18n.js", media_type="application/javascript")
+
+
 @app.get("/manifest.webmanifest")
 def webmanifest():
     return FileResponse(STATIC_DIR / "manifest.webmanifest", media_type="application/manifest+json")

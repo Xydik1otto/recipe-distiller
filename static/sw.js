@@ -5,7 +5,7 @@
      as offline fallback; /api/recipes/export is refreshed on every online visit;
    - everything else: network, no offline fallback (extraction needs the net anyway). */
 const CACHE = 'recipe-distiller-v1';
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg'];
+const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg', '/i18n.js'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
