@@ -123,6 +123,7 @@
     <p class="meta"></p>
     <h3 data-i18n="ingredients">Ingredients</h3><ul class="ings"></ul>
     <h3 data-i18n="steps">Steps</h3><ol class="steps"></ol>
+    <p class="nutrition muted"></p>
     <p class="actions">
       <input type="number" class="target" min="1" step="0.5" placeholder="порцій" style="width:6rem" data-i18n-ph="servings_ph">
       <button class="doscale" data-i18n="rescale">× перерахувати</button>
@@ -186,6 +187,16 @@ function card(recipe, url) {
           span.title = t('subst_title') + ': ' + it.substitutes.join(' · ');
         }
       }))
+      .catch(() => {});
+    // approximate nutrition: '≈ 540 kcal / serving (protein 12 g …)'
+    fetch('/api/nutrition', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({recipe})})
+      .then(r => r.json())
+      .then(n => {
+        const bits = [n.kcal + ' kcal', n.per_serving ? ('≈ ' + n.per_serving + ' kcal ' + t('nutrition_ps')) : null,
+                      'P ' + n.protein_g + ' g · F ' + n.fat_g + ' g · C ' + n.carbs_g + ' g'];
+        $('.nutrition', node).textContent = t('nutrition_label') + ' ' + bits.filter(Boolean).join(' · ');
+      })
       .catch(() => {});
   }
   $('.uncheck', node).onclick = () => {

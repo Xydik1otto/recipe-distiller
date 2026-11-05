@@ -65,6 +65,8 @@ const I18N = {
     pantry_match: '🍳 Що можна готувати?',
     pantry_none: 'Книга порожня — немає чого зіставляти.',
     pantry_missing: 'бракує',
+    nutrition_label: '≈ поживність:',
+    nutrition_ps: 'на порцію',
   },
   en: {
     tagline: 'Paste a recipe link — get just the recipe, no life stories, no ads.',
@@ -128,6 +130,8 @@ const I18N = {
     pantry_match: '🍳 What can I cook?',
     pantry_none: 'The book is empty — nothing to match.',
     pantry_missing: 'missing',
+    nutrition_label: '≈ nutrition:',
+    nutrition_ps: 'per serving',
   },
 };
 

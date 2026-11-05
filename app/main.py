@@ -255,6 +255,26 @@ def pantry_match():
     return {"pantry": items, "matches": match_recipes(saved, items)}
 
 
+class NutritionRequest(BaseModel):
+    recipe: Dict
+
+
+@app.post("/api/nutrition")
+def estimate_nutrition(req: NutritionRequest):
+    """Approximate kcal/macros from ingredient lines (±20-30%, not medical)."""
+    from .nutrition import estimate
+    return estimate(req.recipe)
+
+
+@app.get("/api/recipes/{recipe_id}/nutrition")
+def estimate_saved_nutrition(recipe_id: int):
+    item = db.get_saved(db.connect(), recipe_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Recipe not found.")
+    from .nutrition import estimate
+    return estimate(item["recipe"])
+
+
 @app.get("/api/recipes/export")
 def export_recipes():
     conn = db.connect()
