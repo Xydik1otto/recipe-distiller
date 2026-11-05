@@ -22,6 +22,10 @@
   .plan-slot .day { width: 6rem; font-weight: 600; }
   .tag { display: inline-block; background: #8882; border-radius: 8px; padding: 0 .5rem; font-size: .8rem; }
   .hidden { display: none; }
+  .heart { background: none; border: none; padding: 0 .15rem; font-size: 1.05rem; cursor: pointer; color: #999; }
+  .heart.on { color: #e0245e; }
+  .stars { white-space: nowrap; cursor: pointer; color: #bbb; font-size: .95rem; letter-spacing: 1px; }
+  .stars .star.on { color: #e2a400; }
   pre { white-space: pre-wrap; }
 </style>
 </head>
@@ -38,9 +42,15 @@
 <div id="result" class="hidden"></div>
 
 <h2>📖 Моя книга рецептів</h2>
-<form id="searchf" style="display:flex;gap:.5rem;margin:.5rem 0">
-  <input type="search" id="q" placeholder="Пошук: назва або інгредієнт…" style="flex:1;padding:.5rem">
+<form id="searchf" style="display:flex;gap:.5rem;margin:.5rem 0;flex-wrap:wrap;align-items:center">
+  <input type="search" id="q" placeholder="Пошук: назва або інгредієнт…" style="flex:1;min-width:10rem;padding:.5rem">
   <input type="search" id="tagf" placeholder="тег…" style="width:8rem;padding:.5rem">
+  <select id="sort" style="padding:.5rem">
+    <option value="">спочатку нові</option>
+    <option value="rating">за рейтингом</option>
+    <option value="title">за назвою</option>
+  </select>
+  <label style="white-space:nowrap"><input type="checkbox" id="favonly"> лише ♥</label>
 </form>
 <div id="saved"></div>
 <p><button type="button" id="shopbtn">🛒 Список покупок (обрані)</button></p>
@@ -109,20 +119,39 @@ function card(recipe, url) {
 async function loadSaved() {
   const q = encodeURIComponent($('#q').value.trim());
   const tag = encodeURIComponent($('#tagf').value.trim());
-  const r = await fetch('/api/recipes?q=' + q + '&tag=' + tag);
+  const sort = encodeURIComponent($('#sort').value);
+  const fav = $('#favonly').checked ? '&favorite=1' : '';
+  const r = await fetch('/api/recipes?q=' + q + '&tag=' + tag + '&sort=' + sort + fav);
   const { recipes } = await r.json();
   const box = $('#saved');
   box.innerHTML = recipes.length ? '' : '<p class="muted">Ще нічого не збережено.</p>';
   for (const it of recipes) {
     const tags = (it.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
+    const stars = [1,2,3,4,5].map(n =>
+      `<span class="star${n <= it.rating ? ' on' : ''}" data-star="${it.id}:${n}" title="${n}★">★</span>`).join('');
     box.insertAdjacentHTML('beforeend',
       `<div class="saved-item" draggable="true" data-rid="${it.id}"><span><input type="checkbox" class="pick" value="${it.id}">
-       <a href="/print/${it.id}">${esc(it.title)}</a> ${tags}</span>
+       <button class="heart${it.favorite ? ' on' : ''}" data-fav="${it.id}" title="улюблене">${it.favorite ? '♥' : '♡'}</button>
+       <a href="/print/${it.id}">${esc(it.title)}</a> <span class="stars">${stars}</span> ${tags}</span>
        <span><button data-tag="${it.id}" title="теги">🏷</button>
        <button data-del="${it.id}">🗑</button></span></div>`);
   }
   box.querySelectorAll('button[data-del]').forEach(b => b.onclick = async () => {
     await fetch('/api/recipes/' + b.dataset.del, {method:'DELETE'}); loadSaved();
+  });
+  box.querySelectorAll('.heart').forEach(b => b.onclick = async () => {
+    await fetch('/api/recipes/' + b.dataset.fav + '/rating', {method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({favorite: !b.classList.contains('on')})});
+    loadSaved();
+  });
+  box.querySelectorAll('.star').forEach(s => s.onclick = async () => {
+    const [rid, n] = s.dataset.star.split(':');
+    const cur = recipes.find(x => x.id == rid);
+    const val = (cur.rating == n) ? 0 : +n;   // click the same star again -> clear
+    await fetch('/api/recipes/' + rid + '/rating', {method:'PUT',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({rating: val})});
+    loadSaved();
   });
   box.querySelectorAll('button[data-tag]').forEach(b => b.onclick = async () => {
     const cur = recipes.find(x => x.id == b.dataset.tag);
@@ -138,6 +167,8 @@ async function loadSaved() {
 $('#searchf').onsubmit = e => e.preventDefault();
 $('#q').oninput = loadSaved;
 $('#tagf').oninput = loadSaved;
+$('#sort').onchange = loadSaved;
+$('#favonly').onchange = loadSaved;
 
 const DAYS = ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
 

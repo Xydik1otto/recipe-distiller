@@ -74,9 +74,26 @@ def save(req: SaveRequest):
 
 
 @app.get("/api/recipes")
-def list_saved(q: str = "", tag: str = ""):
+def list_saved(q: str = "", tag: str = "", favorite: int = 0, sort: str = ""):
     conn = db.connect()
-    return {"recipes": db.list_saved(conn, q=q or None, tag=tag or None)}
+    return {"recipes": db.list_saved(conn, q=q or None, tag=tag or None,
+                                     favorite=bool(favorite), sort=sort or None)}
+
+
+class RatingRequest(BaseModel):
+    favorite: Optional[bool] = None
+    rating: Optional[int] = None  # 0..5 stars, 0 = no rating
+
+
+@app.put("/api/recipes/{recipe_id}/rating")
+def set_rating(recipe_id: int, req: RatingRequest):
+    if req.rating is not None and not 0 <= req.rating <= 5:
+        raise HTTPException(status_code=422, detail="rating must be 0..5")
+    if not db.set_rating(db.connect(), recipe_id,
+                         favorite=req.favorite, rating=req.rating):
+        raise HTTPException(status_code=404, detail="Recipe not found.")
+    item = db.get_saved(db.connect(), recipe_id)
+    return {"id": recipe_id, "favorite": item["favorite"], "rating": item["rating"]}
 
 
 class ScaleRequest(BaseModel):

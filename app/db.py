@@ -38,6 +38,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if "tags" not in cols:
         conn.execute("ALTER TABLE saved ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'")
         conn.commit()
+    if "favorite" not in cols:
+        conn.execute("ALTER TABLE saved ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+    if "rating" not in cols:
+        conn.execute("ALTER TABLE saved ADD COLUMN rating INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
 
 
 def db_path() -> str:
@@ -74,9 +80,13 @@ def save_recipe(conn: sqlite3.Connection, url: str, data: Dict) -> int:
 
 
 def list_saved(conn: sqlite3.Connection, q: Optional[str] = None,
-               tag: Optional[str] = None) -> List[Dict]:
-    """Saved recipes, newest first; optional search by title/ingredients and tag."""
-    sql = ("SELECT id, url, title, tags, saved_at, data FROM saved")
+               tag: Optional[str] = None, favorite: Optional[bool] = None,
+               sort: Optional[str] = None) -> List[Dict]:
+    """Saved recipes; optional search by title/ingredients, tag, favorites-only, sorting.
+
+    sort: None/'new' -> newest first, 'rating' -> best rated first, 'title' -> A-Z.
+    """
+    sql = "SELECT id, url, title, tags, favorite, rating, saved_at FROM saved"
     clauses, params = [], []
     if q:
         clauses.append("(title LIKE ? OR data LIKE ?)")
@@ -84,13 +94,37 @@ def list_saved(conn: sqlite3.Connection, q: Optional[str] = None,
     if tag:
         clauses.append("tags LIKE ?")
         params.append(f'%"{tag}"%')
+    if favorite:
+        clauses.append("favorite = 1")
     if clauses:
         sql += " WHERE " + " AND ".join(clauses)
-    sql += " ORDER BY saved_at DESC"
+    sql += {"rating": " ORDER BY rating DESC, saved_at DESC",
+            "title": " ORDER BY title COLLATE NOCASE"}.get(sort or "", " ORDER BY saved_at DESC")
     rows = conn.execute(sql, params).fetchall()
     return [{"id": r["id"], "url": r["url"], "title": r["title"],
-             "tags": json.loads(r["tags"]), "saved_at": r["saved_at"]}
+             "tags": json.loads(r["tags"]), "favorite": bool(r["favorite"]),
+             "rating": r["rating"], "saved_at": r["saved_at"]}
             for r in rows]
+
+
+def set_rating(conn: sqlite3.Connection, recipe_id: int,
+               favorite: Optional[bool] = None,
+               rating: Optional[int] = None) -> bool:
+    """Set favorite flag and/or 0..5 star rating; returns False when id is unknown."""
+    sets, params = [], []
+    if favorite is not None:
+        sets.append("favorite = ?")
+        params.append(1 if favorite else 0)
+    if rating is not None:
+        sets.append("rating = ?")
+        params.append(int(rating))
+    if not sets:
+        return conn.execute("SELECT 1 FROM saved WHERE id = ?",
+                            (recipe_id,)).fetchone() is not None
+    params.append(recipe_id)
+    cur = conn.execute(f"UPDATE saved SET {', '.join(sets)} WHERE id = ?", params)
+    conn.commit()
+    return cur.rowcount > 0
 
 
 def set_tags(conn: sqlite3.Connection, recipe_id: int, tags: List[str]) -> bool:
@@ -104,9 +138,11 @@ def set_tags(conn: sqlite3.Connection, recipe_id: int, tags: List[str]) -> bool:
 def export_all(conn: sqlite3.Connection) -> List[Dict]:
     """Every saved recipe in full, for JSON export."""
     rows = conn.execute(
-        "SELECT url, title, data, tags, saved_at FROM saved ORDER BY saved_at").fetchall()
+        "SELECT url, title, data, tags, favorite, rating, saved_at "
+        "FROM saved ORDER BY saved_at").fetchall()
     return [{"url": r["url"], "title": r["title"],
              "recipe": json.loads(r["data"]), "tags": json.loads(r["tags"]),
+             "favorite": bool(r["favorite"]), "rating": r["rating"],
              "saved_at": r["saved_at"]} for r in rows]
 
 
@@ -121,11 +157,15 @@ def import_recipes(conn: sqlite3.Connection, items: List[Dict]) -> int:
             continue
         title = item.get("title") or recipe.get("title") or str(item["url"])
         tags = item.get("tags") if isinstance(item.get("tags"), list) else []
+        fav = 1 if item.get("favorite") else 0
+        rating = item.get("rating")
+        rating = int(rating) if isinstance(rating, (int, float)) and 0 <= rating <= 5 else 0
         conn.execute(
-            "INSERT INTO saved (url, title, data, saved_at, tags) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO saved (url, title, data, saved_at, tags, favorite, rating) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (str(item["url"]), title, json.dumps(recipe, ensure_ascii=False),
              float(item.get("saved_at") or time.time()),
-             json.dumps([str(t) for t in tags], ensure_ascii=False)))
+             json.dumps([str(t) for t in tags], ensure_ascii=False), fav, rating))
         count += 1
     conn.commit()
     return count
@@ -137,6 +177,7 @@ def get_saved(conn: sqlite3.Connection, recipe_id: int) -> Optional[Dict]:
         return None
     return {"id": row["id"], "url": row["url"], "title": row["title"],
             "tags": json.loads(row["tags"]),
+            "favorite": bool(row["favorite"]), "rating": row["rating"],
             "saved_at": row["saved_at"], "recipe": json.loads(row["data"])}
 
 
