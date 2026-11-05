@@ -81,3 +81,72 @@ def test_db_persists_across_connections(tmp_path):
     conn.close()
     conn2 = db.connect()
     assert db.get_saved(conn2, rid)["recipe"]["title"] == "T"
+
+
+def _save_two(client):
+    a = client.post("/api/recipes", json={"url": "https://example.com/borscht"}).json()["id"]
+    b = client.post("/api/recipes", json={"url": "https://example.com/pancakes"}).json()["id"]
+    return a, b
+
+
+def test_search_by_title_and_ingredient(client):
+    client, _ = client
+    _save_two(client)
+    by_title = client.get("/api/recipes", params={"q": "borscht"}).json()["recipes"]
+    assert [r["title"] for r in by_title] == ["Grandma's Borscht"]
+    by_ingredient = client.get("/api/recipes", params={"q": "eggs"}).json()["recipes"]
+    assert [r["title"] for r in by_ingredient] == ["Quick Pancakes"]
+    assert client.get("/api/recipes", params={"q": "zzz-none"}).json()["recipes"] == []
+
+
+def test_tags_set_filter_and_exported(client):
+    client, _ = client
+    a, b = _save_two(client)
+    r = client.put(f"/api/recipes/{a}/tags", json={"tags": ["soup", "winter", "soup"]})
+    assert r.status_code == 200 and r.json()["tags"] == ["soup", "winter"]
+    assert client.put("/api/recipes/9999/tags", json={"tags": ["x"]}).status_code == 404
+    tagged = client.get("/api/recipes", params={"tag": "soup"}).json()["recipes"]
+    assert [x["id"] for x in tagged] == [a]
+    assert b not in [x["id"] for x in tagged]
+    export = client.get("/api/recipes/export").json()
+    soup_item = next(x for x in export["recipes"] if x["recipe"].get("title"))
+    assert any(x["tags"] == ["soup", "winter"] for x in export["recipes"])
+
+
+def test_export_import_roundtrip(client):
+    client, _ = client
+    a, b = _save_two(client)
+    client.put(f"/api/recipes/{a}/tags", json={"tags": ["soup"]})
+    export = client.get("/api/recipes/export").json()
+    assert len(export["recipes"]) == 2
+    # wipe and restore
+    for i in (a, b):
+        client.delete(f"/api/recipes/{i}")
+    assert client.get("/api/recipes").json()["recipes"] == []
+    r = client.post("/api/recipes/import", json=export)
+    assert r.status_code == 200 and r.json()["imported"] == 2
+    back = client.get("/api/recipes").json()["recipes"]
+    titles = {x["title"] for x in back}
+    assert titles == {"Grandma's Borscht", "Quick Pancakes"}
+    tagged = client.get("/api/recipes", params={"tag": "soup"}).json()["recipes"]
+    assert len(tagged) == 1
+    full = client.get(f"/api/recipes/{tagged[0]['id']}").json()
+    assert "beets" in full["recipe"]["ingredients"][0]
+
+
+def test_import_accepts_bare_list_and_skips_junk(client):
+    client, _ = client
+    items = [
+        {"url": "https://example.com/borscht", "recipe": {"title": "Borscht", "ingredients": ["3 beets"]}},
+        {"garbage": True},
+        "not-a-dict",
+    ]
+    r = client.post("/api/recipes/import", json=items)
+    assert r.status_code == 200 and r.json()["imported"] == 1
+    assert len(client.get("/api/recipes").json()["recipes"]) == 1
+
+
+def test_import_rejects_bad_shape(client):
+    client, _ = client
+    r = client.post("/api/recipes/import", json={"nope": 1})
+    assert r.status_code == 422

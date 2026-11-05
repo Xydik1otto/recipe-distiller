@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any, List
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, HttpUrl
 
@@ -64,8 +65,36 @@ def save(req: SaveRequest):
 
 
 @app.get("/api/recipes")
-def list_saved():
-    return {"recipes": db.list_saved(db.connect())}
+def list_saved(q: str = "", tag: str = ""):
+    conn = db.connect()
+    return {"recipes": db.list_saved(conn, q=q or None, tag=tag or None)}
+
+
+@app.get("/api/recipes/export")
+def export_recipes():
+    conn = db.connect()
+    return {"version": 1, "recipes": db.export_all(conn)}
+
+
+@app.post("/api/recipes/import")
+def import_recipes(payload: Any = Body(...)):
+    """Accepts {'recipes': [...]} or a bare [...] in the export format."""
+    items = payload.get("recipes") if isinstance(payload, dict) else payload
+    if not isinstance(items, list):
+        raise HTTPException(status_code=422, detail="Expected {'recipes': [...]} or a list.")
+    imported = db.import_recipes(db.connect(), items)
+    return {"imported": imported}
+
+
+class TagsRequest(BaseModel):
+    tags: List[str]
+
+
+@app.put("/api/recipes/{recipe_id}/tags")
+def set_tags(recipe_id: int, req: TagsRequest):
+    if not db.set_tags(db.connect(), recipe_id, req.tags):
+        raise HTTPException(status_code=404, detail="Recipe not found.")
+    return {"id": recipe_id, "tags": sorted(set(req.tags))}
 
 
 @app.get("/api/recipes/{recipe_id}")

@@ -16,6 +16,7 @@
   .card h2 { margin-top: 0; }
   .meta { color: #666; font-size: .9rem; }
   .saved-item { display: flex; justify-content: space-between; gap: .5rem; padding: .35rem 0; border-bottom: 1px solid #8882; }
+  .tag { display: inline-block; background: #8882; border-radius: 8px; padding: 0 .5rem; font-size: .8rem; }
   .hidden { display: none; }
   pre { white-space: pre-wrap; }
 </style>
@@ -33,7 +34,16 @@
 <div id="result" class="hidden"></div>
 
 <h2>📖 Моя книга рецептів</h2>
+<form id="searchf" style="display:flex;gap:.5rem;margin:.5rem 0">
+  <input type="search" id="q" placeholder="Пошук: назва або інгредієнт…" style="flex:1;padding:.5rem">
+  <input type="search" id="tagf" placeholder="тег…" style="width:8rem;padding:.5rem">
+</form>
 <div id="saved"></div>
+<p>
+  <a href="/api/recipes/export" download="recipes.json">⬇ Export JSON</a>
+  <button type="button" id="importbtn">⬆ Import JSON</button>
+  <input type="file" id="importfile" accept="application/json,.json" hidden>
+</p>
 
 <template id="tpl">
   <div class="card">
@@ -73,19 +83,51 @@ function card(recipe, url) {
 }
 
 async function loadSaved() {
-  const r = await fetch('/api/recipes');
+  const q = encodeURIComponent($('#q').value.trim());
+  const tag = encodeURIComponent($('#tagf').value.trim());
+  const r = await fetch('/api/recipes?q=' + q + '&tag=' + tag);
   const { recipes } = await r.json();
   const box = $('#saved');
   box.innerHTML = recipes.length ? '' : '<p class="muted">Ще нічого не збережено.</p>';
   for (const it of recipes) {
+    const tags = (it.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
     box.insertAdjacentHTML('beforeend',
-      `<div class="saved-item"><a href="/print/${it.id}">${esc(it.title)}</a>
-       <button data-del="${it.id}">🗑</button></div>`);
+      `<div class="saved-item"><span><a href="/print/${it.id}">${esc(it.title)}</a> ${tags}</span>
+       <span><button data-tag="${it.id}" title="теги">🏷</button>
+       <button data-del="${it.id}">🗑</button></span></div>`);
   }
   box.querySelectorAll('button[data-del]').forEach(b => b.onclick = async () => {
     await fetch('/api/recipes/' + b.dataset.del, {method:'DELETE'}); loadSaved();
   });
+  box.querySelectorAll('button[data-tag]').forEach(b => b.onclick = async () => {
+    const cur = recipes.find(x => x.id == b.dataset.tag);
+    const val = prompt('Теги через кому:', (cur.tags || []).join(', '));
+    if (val === null) return;
+    await fetch('/api/recipes/' + b.dataset.tag + '/tags', {method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({tags: val.split(',').map(s => s.trim()).filter(Boolean)})});
+    loadSaved();
+  });
 }
+
+$('#searchf').onsubmit = e => e.preventDefault();
+$('#q').oninput = loadSaved;
+$('#tagf').oninput = loadSaved;
+
+$('#importbtn').onclick = () => $('#importfile').click();
+$('#importfile').onchange = async () => {
+  const file = $('#importfile').files[0];
+  if (!file) return;
+  try {
+    const items = JSON.parse(await file.text());
+    const r = await fetch('/api/recipes/import', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify(items)});
+    const data = await r.json();
+    $('#status').textContent = r.ok ? `⬆ Імпортовано: ${data.imported}` : ('❌ ' + (data.detail || 'error'));
+  } catch { $('#status').textContent = '❌ Невалідний JSON'; }
+  $('#importfile').value = '';
+  loadSaved();
+};
 
 $('#f').onsubmit = async (e) => {
   e.preventDefault();
