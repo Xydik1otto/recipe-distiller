@@ -98,6 +98,11 @@ def normalize_ingredient(text: str) -> str:
     return re.sub(r"\s+", " ", out).strip()
 
 
+_PLURALIZABLE = {"cup", "tablespoon", "teaspoon", "gram", "pound", "ounce",
+                 "clove", "can", "pack", "bunch", "piece", "pinch",
+                 "litre", "liter"}
+
+
 def scale_ingredient(text: str, factor: float) -> str:
     """'1 1/2 cups flour' scaled x2 -> '3 cups flour'. Unparsable lines pass through."""
     amount = parse_amount(text)
@@ -106,7 +111,10 @@ def scale_ingredient(text: str, factor: float) -> str:
     rest = amount["rest"]
     first, _, tail = rest.partition(" ")
     if first.lower() in _UNITS:
-        rest = f"{first} {tail}".strip()
+        unit = first.lower()
+        if amount["qty"] * factor > 1 and unit in _PLURALIZABLE:
+            unit += "s"
+        rest = f"{unit} {tail}".strip()
     return f"{format_qty(amount['qty'] * factor)} {rest}".strip()
 
 
@@ -118,3 +126,33 @@ def parse_servings(text) -> Optional[float]:
         text = str(text)
     m = re.search(r"\d+(?:[.,]\d+)?", str(text))
     return float(m.group(0).replace(",", ".")) if m else None
+
+
+def scale_recipe(recipe: Dict, servings: Optional[float] = None,
+                 factor: Optional[float] = None) -> Optional[Dict]:
+    """Copy of the recipe with every ingredient amount scaled.
+
+    Give either an explicit factor, or target servings together with a recipe
+    whose 'servings' contains a base number ('6 servings' -> base 6).
+    Returns None when the factor cannot be determined.
+    """
+    if factor is None:
+        base = parse_servings(recipe.get("servings"))
+        if base is None or not servings:
+            return None
+        factor = float(servings) / base
+    if not factor or factor <= 0:
+        return None
+    out = dict(recipe)
+    out["ingredients"] = [scale_ingredient(i, factor)
+                          for i in recipe.get("ingredients") or []]
+    parsed = recipe.get("ingredients_parsed")
+    if parsed:
+        out["ingredients_parsed"] = [
+            dict(p, qty=(round(p["qty"] * factor, 4)
+                         if p.get("qty") is not None else None))
+            for p in parsed]
+    if servings is not None:
+        out["servings"] = f"{format_qty(float(servings))} servings"
+    out["scaled_by"] = round(factor, 4)
+    return out

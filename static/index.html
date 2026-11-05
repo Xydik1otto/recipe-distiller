@@ -52,6 +52,10 @@
     <h3>Ingredients</h3><ul class="ings"></ul>
     <h3>Steps</h3><ol class="steps"></ol>
     <p class="actions">
+      <input type="number" class="target" min="1" step="0.5" placeholder="порцій" style="width:6rem">
+      <button class="doscale">× перерахувати</button>
+    </p>
+    <p class="actions">
       <button class="save">💾 Save</button>
       <a class="orig" target="_blank" rel="noopener">original ↗</a>
       <details><summary>JSON</summary><pre class="json"></pre></details>
@@ -78,6 +82,15 @@ function card(recipe, url) {
     const r = await fetch('/api/recipes', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url})});
     $('.save', node).textContent = r.ok ? '✅ Saved' : '❌ Error';
     if (r.ok) loadSaved();
+  };
+  $('.doscale', node).onclick = async () => {
+    const s = parseFloat($('.target', node).value);
+    if (!s) return;
+    const r = await fetch('/api/scale', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({recipe, servings: s})});
+    const d = await r.json();
+    if (r.ok) { const box = $('#result'); box.innerHTML = ''; box.appendChild(card(d.recipe, url)); }
+    else alert(d.detail || 'scale error');
   };
   return node;
 }

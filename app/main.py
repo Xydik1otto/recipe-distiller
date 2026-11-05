@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Dict, List, Optional
 
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -77,6 +77,41 @@ def save(req: SaveRequest):
 def list_saved(q: str = "", tag: str = ""):
     conn = db.connect()
     return {"recipes": db.list_saved(conn, q=q or None, tag=tag or None)}
+
+
+class ScaleRequest(BaseModel):
+    recipe: Dict
+    servings: Optional[float] = None
+    factor: Optional[float] = None
+
+
+class ScaleServingsRequest(BaseModel):
+    servings: float
+
+
+@app.post("/api/scale")
+def scale_recipe(req: ScaleRequest):
+    from .quantities import scale_recipe as _scale
+    scaled = _scale(req.recipe, servings=req.servings, factor=req.factor)
+    if not scaled:
+        raise HTTPException(
+            status_code=422,
+            detail="Cannot scale: pass 'factor', or 'servings' together with a recipe "
+                   "whose 'servings' contains a base number.")
+    return {"recipe": scaled}
+
+
+@app.post("/api/recipes/{recipe_id}/scale")
+def scale_saved(recipe_id: int, req: ScaleServingsRequest):
+    item = db.get_saved(db.connect(), recipe_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Recipe not found.")
+    from .quantities import scale_recipe as _scale
+    scaled = _scale(item["recipe"], servings=req.servings)
+    if not scaled:
+        raise HTTPException(status_code=422,
+                            detail="Recipe has no numeric servings to scale from.")
+    return {"recipe": scaled}
 
 
 @app.get("/api/recipes/export")
