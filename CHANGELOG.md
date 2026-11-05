@@ -7,6 +7,11 @@
 
 ## [Unreleased]
 
+### Removed
+- Monetization scaffolding — проєкт 100% безкоштовний open-source:
+  видалено `.github/FUNDING.yml` (GitHub Sponsors), секцію «Монетизація»
+  та Pro/paid-згадки з PLAN.md.
+
 ## [1.0.0] — 2026-11-05
 
 ### Added
@@ -61,7 +66,7 @@
   у localStorage (ключ на рецепт), закреслення відмічених, кнопка скидання.
 
 ### Docs / infra
-- `CHANGELOG.md`, `FUNDING.yml` (GitHub Sponsors), favicon + OG-мета,
+- `CHANGELOG.md`, favicon + OG-мета,
   `scripts/smoke.sh` (запуск сервера на випадковому порту + перевірка ендпоінтів),
   README-секція «Чому це існує».
 
