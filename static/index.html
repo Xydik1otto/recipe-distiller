@@ -85,6 +85,11 @@
   <label style="white-space:nowrap"><input type="checkbox" id="favonly"> <span data-i18n="favonly">лише ♥</span></label>
 </form>
 <div id="saved"></div>
+<div id="demobanner" class="card hidden">
+  <p data-i18n="demo_invite" style="margin:.2rem 0">Книга порожня. Хочеш спробувати на демо-рецептах?</p>
+  <button type="button" id="demobtn" data-i18n="demo_btn">🧪 Завантажити демо</button>
+  <button type="button" id="demodismiss" aria-label="не зараз">✕</button>
+</div>
 <p><button type="button" id="shopbtn" data-i18n="shop_selected">🛒 Список покупок (обрані)</button></p>
 <div id="shoplist" class="card hidden"></div>
 <h2 data-i18n="plan_title">📅 План на тиждень</h2>
@@ -201,6 +206,9 @@ async function loadSaved() {
   const { recipes } = await r.json();
   const box = $('#saved');
   box.innerHTML = recipes.length ? '' : `<p class="muted">${t('empty_book')}</p>`;
+  // first-run experience: offer demo recipes while the book is empty (opt-in)
+  const dismissed = (() => { try { return localStorage.getItem('rd-demo-dismissed'); } catch { return '1'; } })();
+  $('#demobanner').classList.toggle('hidden', !!(recipes.length || dismissed));
   for (const it of recipes) {
     const tags = (it.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
     const stars = [1,2,3,4,5].map(n =>
@@ -347,6 +355,17 @@ $('#f').onsubmit = (e) => {
 // deep link: extension / bookmarklet open the app as /?url=<recipe page>
 const urlParam = new URLSearchParams(location.search).get('url');
 if (urlParam) { $('#url').value = urlParam; distill(urlParam.trim()); }
+
+$('#demobtn').onclick = async () => {
+  await fetch('/api/demo', {method:'POST'});
+  try { localStorage.setItem('rd-demo-dismissed', '1'); } catch {}
+  $('#status').textContent = t('demo_done');
+  loadSaved();
+};
+$('#demodismiss').onclick = () => {
+  try { localStorage.setItem('rd-demo-dismissed', '1'); } catch {}
+  $('#demobanner').classList.add('hidden');
+};
 
 // substitution base browser: lazily loaded on first open
 $('#substblock').addEventListener('toggle', () => {

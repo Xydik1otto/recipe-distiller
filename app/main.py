@@ -235,6 +235,13 @@ def export_recipes():
     return {"version": 1, "recipes": db.export_all(conn)}
 
 
+@app.post("/api/demo")
+def load_demo_recipes():
+    """First-run experience: load 3 demo recipes (skips ones already present)."""
+    from .demo import load_demo
+    return {"added": load_demo(db.connect())}
+
+
 @app.post("/api/recipes/import")
 def import_recipes(payload: Any = Body(...)):
     """Accepts {'recipes': [...]} or a bare [...] in the export format."""
