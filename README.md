@@ -3,7 +3,7 @@
 ![tests](https://github.com/bigpi/recipe-distiller/actions/workflows/tests.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.12+-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![version](https://img.shields.io/badge/version-0.1.0--alpha-orange)
+![version](https://img.shields.io/badge/version-0.3.0-orange)
 
 URL → чистий рецепт. Без реклами, без 1200 слів про дитинство, без попапів.
 
@@ -71,7 +71,7 @@ cd recipe-distiller
 pip install -r requirements.txt
 uvicorn app.main:app --reload        # http://127.0.0.1:8000
 
-pytest                               # 35 тестів, без мережі — фіксовані HTML-фікстури
+pytest                               # 61 тест, без мережі — фіксовані HTML-фікстури
 ```
 
 ## Bookmarklet
@@ -96,6 +96,13 @@ javascript:(async()=>{const b='http://127.0.0.1:8000';try{const r=await fetch(b+
 | PUT | `/api/recipes/{id}/tags` `{tags: []}` | встановити теги |
 | GET | `/api/recipes/export` | експорт усіх збережених у JSON |
 | POST | `/api/recipes/import` | імпорт з export-формату (`{"recipes":[…]}` або `[…]`) |
+| POST | `/api/scale` `{recipe, servings\|factor}` | перерахунок кількостей під нові порції |
+| POST | `/api/recipes/{id}/scale` `{servings}` | масштабувати збережений рецепт |
+| POST | `/api/shopping-list` `{recipe_ids: []}` | об'єднати інгредієнти кількох рецептів |
+| GET | `/api/plan` | план на тиждень (7 слотів Пн–Нд) |
+| PUT | `/api/plan` `{slot, recipe_id\|null}` | призначити/очистити слот |
+| GET | `/api/plan/shopping-list` | список покупок, згенерований з плану |
+| GET | `/bookmarklet` | сторінка з кнопкою bookmarklet (drag) |
 | GET | `/api/recipes/{id}` | один збережений рецепт |
 | DELETE | `/api/recipes/{id}` | видалити |
 | GET | `/print/{id}` | printable view (для друку/PDF) |
@@ -117,9 +124,18 @@ javascript:(async()=>{const b='http://127.0.0.1:8000';try{const r=await fetch(b+
 
 ## Статус
 
-**v0.1.0-alpha**: extraction pipeline (3 рівні + вкладені секції), нормалізація
-кількостей, кеш, книга рецептів з пошуком/тегами/export-import, printable view,
-35 тестів зелені. Дорожня карта — [PLAN.md](PLAN.md).
+**v0.3.0**:
+
+- Extraction pipeline: JSON-LD (з @graph, вкладеними HowToSection/HowToStep) →
+  microdata → евристики; нормалізація кількостей (`½`, `1/2`, `0.5` → parsed qty).
+- Книга рецептів: пошук по назві/інгредієнтах, теги, export/import JSON.
+- Bookmarklet: кнопка-закладка для будь-якого сайта (CORS, `/bookmarklet`).
+- Serving scaling: порції ×N з перерахунком кількостей (`/api/scale`).
+- Shopping list: об'єднання інгредієнтів кількох рецептів (`1 cup` + `2 cups` → `3 cups`).
+- Meal plan: 7 слотів на тиждень (drag & drop) + автогенерація списку покупок з плану.
+- Printable view, кеш на 24 год; 61 тест, без мережі.
+
+Дорожня карта — [PLAN.md](PLAN.md).
 
 ## Ліцензія
 

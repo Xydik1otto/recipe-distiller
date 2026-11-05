@@ -15,7 +15,7 @@ from . import db
 from .extractor import extract_from_html
 from .fetcher import fetch_html
 
-app = FastAPI(title="Recipe Distiller", version="0.1.0")
+app = FastAPI(title="Recipe Distiller", version="0.3.0")
 # bookmarklet calls the API from any third-party site
 app.add_middleware(CORSMiddleware, allow_origins=["*"],
                    allow_methods=["*"], allow_headers=["*"])
