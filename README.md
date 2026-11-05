@@ -3,9 +3,23 @@
 ![tests](https://github.com/bigpi/recipe-distiller/actions/workflows/tests.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.12+-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![version](https://img.shields.io/badge/version-0.3.0-orange)
+![version](https://img.shields.io/badge/version-0.4.0-orange)
 
 URL → чистий рецепт. Без реклами, без 1200 слів про дитинство, без попапів.
+
+## Чому це існує
+
+> «I just wanted a recipe. Instead I got 2,000 words about how this recipe
+> reminds me of my grandmother's summers in Tuscany…»
+> — типовий пост із r/mildlyinfuriating, десятки тисяч уподобань
+
+Це не окремий скарг — це системний біль: пости «I just wanted a recipe 😫»
+регулярно злітають на r/mildlyinfuriating та r/webdev, існуючий сервіс
+justtherecipe.food довів попит (люди готові користуватися навіть примітивним
+інструментом лише заради «тільки рецепт»), а аналіз 9363 постів підтверджує
+стабільний anti-bloat тренд — користувачі дедалі голосніше вимагають чистого
+контенту. Recipe Distiller — локальна відповідь на цей біль: свій сервер,
+свої рецепти, нуль реклами.
 
 ## Проблема
 
@@ -71,7 +85,8 @@ cd recipe-distiller
 pip install -r requirements.txt
 uvicorn app.main:app --reload        # http://127.0.0.1:8000
 
-pytest                               # 61 тест, без мережі — фіксовані HTML-фікстури
+pytest                               # 93 тести, без мережі — фіксовані HTML-фікстури
+bash scripts/smoke.sh                # smoke: піднімає сервер, перевіряє головні ендпоінти
 ```
 
 ## Bookmarklet
@@ -93,6 +108,9 @@ javascript:(async()=>{const b='http://127.0.0.1:8000';try{const r=await fetch(b+
 | POST | `/api/extract` `{url}` | завантажити + витягти рецепт (кеш у SQLite на 24 год) |
 | POST | `/api/recipes` `{url}` | витягти і зберегти у книгу рецептів |
 | GET | `/api/recipes?q=&tag=` | список; пошук по назві/інгредієнтах, фільтр за тегом |
+| GET | `/api/recipes?favorite=1&sort=rating\|title` | фільтр «лише улюблені», сортування за рейтингом/назвою |
+| PUT | `/api/recipes/{id}/rating` `{favorite?, rating?}` | улюблене ♥ + 5-зіркова оцінка |
+| POST | `/api/convert` `{ingredients: []}` | cups→ml→g підказки для типових інгредієнтів |
 | PUT | `/api/recipes/{id}/tags` `{tags: []}` | встановити теги |
 | GET | `/api/recipes/export` | експорт усіх збережених у JSON |
 | POST | `/api/recipes/import` | імпорт з export-формату (`{"recipes":[…]}` або `[…]`) |
@@ -114,28 +132,35 @@ javascript:(async()=>{const b='http://127.0.0.1:8000';try{const r=await fetch(b+
   HowToSection/HowToStep; очищення від реклами.
 - `app/quantities.py` — парсинг кількостей: `1/2`, `½`, `0.5`, `1 1/2`, `1,5` →
   нормалізований float + зворотне pretty-форматування.
+- `app/convert.py` — конвертація одиниць (cups→ml→g) за таблицею густини
+  типових інгредієнтів.
 - `app/fetcher.py` — httpx + retries + mobile UA fallback.
 - `app/db.py` — SQLite: кеш extraction + книга рецептів (теги, пошук,
-  export/import).
+  оцінки, export/import).
 - `app/main.py` — FastAPI endpoints.
 - `static/index.html` — односторінковий UI (без фреймворків).
+- `static/sw.js` + `static/manifest.webmanifest` — PWA offline (кеш книги рецептів).
+- `scripts/smoke.sh` — smoke-тест реального сервера (curl, PASS/FAIL).
 - `tests/fixtures/` — зафіксовані HTML-сторінки (JSON-LD, JSON-LD із секціями,
   дроби, microdata, heuristic, не-рецепт) — тести не ходять у мережу.
 
 ## Статус
 
-**v0.3.0**:
+**v0.4.0**:
 
 - Extraction pipeline: JSON-LD (з @graph, вкладеними HowToSection/HowToStep) →
   microdata → евристики; нормалізація кількостей (`½`, `1/2`, `0.5` → parsed qty).
-- Книга рецептів: пошук по назві/інгредієнтах, теги, export/import JSON.
-- Bookmarklet: кнопка-закладка для будь-якого сайта (CORS, `/bookmarklet`).
-- Serving scaling: порції ×N з перерахунком кількостей (`/api/scale`).
-- Shopping list: об'єднання інгредієнтів кількох рецептів (`1 cup` + `2 cups` → `3 cups`).
-- Meal plan: 7 слотів на тиждень (drag & drop) + автогенерація списку покупок з плану.
-- Printable view, кеш на 24 год; 61 тест, без мережі.
+- Книга рецептів: пошук по назві/інгредієнтах, теги, export/import JSON,
+  улюблені ♥ + 5-зіркові оцінки з сортуванням.
+- Конвертація одиниць: cups→ml→g для типових інгредієнтів (`/api/convert`,
+  підказки в картці та у printable-версії).
+- Print-friendly `/print` + ingredient-чекліст зі збереженням у localStorage.
+- PWA offline: service worker кешує оболонку та збережену книгу рецептів,
+  manifest для встановлення.
+- Bookmarklet, serving scaling, shopping list, meal plan, printable view,
+  кеш на 24 год; 93 тести, без мережі; smoke-скрипт `scripts/smoke.sh`.
 
-Дорожня карта — [PLAN.md](PLAN.md).
+Дорожня карта — [PLAN.md](PLAN.md). Історія змін — [CHANGELOG.md](CHANGELOG.md).
 
 ## Ліцензія
 

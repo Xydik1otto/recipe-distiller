@@ -39,6 +39,11 @@ def webmanifest():
     return FileResponse(STATIC_DIR / "manifest.webmanifest", media_type="application/manifest+json")
 
 
+@app.get("/favicon.svg")
+def favicon():
+    return FileResponse(STATIC_DIR / "favicon.svg", media_type="image/svg+xml")
+
+
 class ExtractRequest(BaseModel):
     url: HttpUrl
 
