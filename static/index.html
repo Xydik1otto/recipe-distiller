@@ -35,6 +35,14 @@
   .conv { color: #666; font-size: .85em; }
   .subst { color: #0b6e3f; font-size: .85em; }
   #substbase li { margin: .25rem 0; }
+  @media print {
+    body > :not(#shoplist) { display: none !important; }   /* print = shopping list only */
+    #shoplist { display: block !important; border: none; padding: 0; max-width: none; }
+    #shoplist.hidden { display: none !important; }         /* nothing to print yet */
+    #shoplist button { display: none; }
+    #shoplist li { break-inside: avoid; page-break-inside: avoid; font-size: 12pt; }
+    #shoplist h3 { break-after: avoid; }
+  }
   label.check { display: block; cursor: pointer; }
   label.check input { accent-color: #2e7d32; margin-right: .3rem; }
   label.check input:checked ~ .txt { text-decoration: line-through; color: #777; }
@@ -63,7 +71,7 @@
   <input type="search" id="q" placeholder="Пошук: назва або інгредієнт…" style="flex:1;min-width:10rem;padding:.5rem">
   <input type="search" id="tagf" placeholder="тег…" style="width:8rem;padding:.5rem">
   <select id="sort" style="padding:.5rem">
-    <option value="">спочатку нові</option>
+    <option value="new">спочатку нові (дата додавання)</option>
     <option value="rating">за рейтингом</option>
     <option value="title">за назвою</option>
   </select>
@@ -190,7 +198,8 @@ async function loadSaved() {
     box.insertAdjacentHTML('beforeend',
       `<div class="saved-item" draggable="true" data-rid="${it.id}"><span><input type="checkbox" class="pick" value="${it.id}">
        <button class="heart${it.favorite ? ' on' : ''}" data-fav="${it.id}" title="улюблене">${it.favorite ? '♥' : '♡'}</button>
-       <a href="/print/${it.id}">${esc(it.title)}</a> <span class="stars">${stars}</span> ${tags}</span>
+       <a href="/print/${it.id}">${esc(it.title)}</a> <span class="stars">${stars}</span> ${tags}
+       <span class="added muted"> 📅 ${new Date(it.saved_at * 1000).toLocaleDateString()}</span></span>
        <span><button data-tag="${it.id}" title="теги">🏷</button>
        <button data-del="${it.id}">🗑</button></span></div>`);
   }
@@ -269,15 +278,19 @@ document.addEventListener('dragstart', e => {
   if (item) e.dataTransfer.setData('text/plain', item.dataset.rid);
 });
 
+function renderShopList(title, items) {
+  const box = $('#shoplist');
+  box.classList.remove('hidden');
+  box.innerHTML = `<h3>🛒 ${esc(title)}</h3>` +
+    (items.length ? '<ul>' + items.map(i => `<li>${esc(i)}</li>`).join('') + '</ul>'
+                  : '<p class="muted">Список порожній.</p>') +
+    '<p><button type="button" onclick="window.print()">🖨 Друк списку</button></p>';
+}
+
 $('#planshopbtn').onclick = async () => {
   const r = await fetch('/api/plan/shopping-list');
   const d = await r.json();
-  const box = $('#shoplist');
-  box.classList.remove('hidden');
-  const items = [...d.items, ...d.unparsed];
-  box.innerHTML = `<h3>🛒 Список покупок з плану (${d.slots_used} рецептів)</h3>` +
-    (items.length ? '<ul>' + items.map(i => `<li>${esc(i)}</li>`).join('') + '</ul>'
-                  : '<p class="muted">План порожній.</p>');
+  renderShopList(`Список покупок з плану (${d.slots_used} рецептів)`, [...d.items, ...d.unparsed]);
 };
 
 $('#shopbtn').onclick = async () => {
@@ -287,9 +300,7 @@ $('#shopbtn').onclick = async () => {
   const r = await fetch('/api/shopping-list', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({recipe_ids: ids})});
   const d = await r.json();
-  box.classList.remove('hidden');
-  box.innerHTML = '<h3>🛒 Список покупок</h3><ul>' +
-    [...d.items, ...d.unparsed].map(i => `<li>${esc(i)}</li>`).join('') + '</ul>';
+  renderShopList('Список покупок', [...d.items, ...d.unparsed]);
 };
 
 $('#importbtn').onclick = () => $('#importfile').click();
