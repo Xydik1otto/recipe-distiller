@@ -39,6 +39,8 @@
   <input type="search" id="tagf" placeholder="тег…" style="width:8rem;padding:.5rem">
 </form>
 <div id="saved"></div>
+<p><button type="button" id="shopbtn">🛒 Список покупок (обрані)</button></p>
+<div id="shoplist" class="card hidden"></div>
 <p>
   <a href="/api/recipes/export" download="recipes.json">⬇ Export JSON</a>
   <button type="button" id="importbtn">⬆ Import JSON</button>
@@ -105,7 +107,8 @@ async function loadSaved() {
   for (const it of recipes) {
     const tags = (it.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join(' ');
     box.insertAdjacentHTML('beforeend',
-      `<div class="saved-item"><span><a href="/print/${it.id}">${esc(it.title)}</a> ${tags}</span>
+      `<div class="saved-item"><span><input type="checkbox" class="pick" value="${it.id}">
+       <a href="/print/${it.id}">${esc(it.title)}</a> ${tags}</span>
        <span><button data-tag="${it.id}" title="теги">🏷</button>
        <button data-del="${it.id}">🗑</button></span></div>`);
   }
@@ -126,6 +129,18 @@ async function loadSaved() {
 $('#searchf').onsubmit = e => e.preventDefault();
 $('#q').oninput = loadSaved;
 $('#tagf').oninput = loadSaved;
+
+$('#shopbtn').onclick = async () => {
+  const ids = [...document.querySelectorAll('#saved .pick:checked')].map(c => +c.value);
+  const box = $('#shoplist');
+  if (!ids.length) { box.classList.add('hidden'); return; }
+  const r = await fetch('/api/shopping-list', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({recipe_ids: ids})});
+  const d = await r.json();
+  box.classList.remove('hidden');
+  box.innerHTML = '<h3>🛒 Список покупок</h3><ul>' +
+    [...d.items, ...d.unparsed].map(i => `<li>${esc(i)}</li>`).join('') + '</ul>';
+};
 
 $('#importbtn').onclick = () => $('#importfile').click();
 $('#importfile').onchange = async () => {

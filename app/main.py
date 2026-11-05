@@ -114,6 +114,23 @@ def scale_saved(recipe_id: int, req: ScaleServingsRequest):
     return {"recipe": scaled}
 
 
+class ShoppingListRequest(BaseModel):
+    recipe_ids: List[int]
+
+
+@app.post("/api/shopping-list")
+def shopping_list(req: ShoppingListRequest):
+    conn = db.connect()
+    recipes, missing = [], []
+    for rid in req.recipe_ids:
+        item = db.get_saved(conn, rid)
+        (recipes.append(item["recipe"]) if item else missing.append(rid))
+    from .shopping import build_shopping_list
+    result = build_shopping_list(recipes)
+    result["missing_ids"] = missing
+    return result
+
+
 @app.get("/api/recipes/export")
 def export_recipes():
     conn = db.connect()
