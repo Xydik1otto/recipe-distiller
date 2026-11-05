@@ -138,6 +138,30 @@ def set_tags(conn: sqlite3.Connection, recipe_id: int, tags: List[str]) -> bool:
     return cur.rowcount > 0
 
 
+def all_tags(conn: sqlite3.Connection, q: Optional[str] = None) -> List[Dict]:
+    """Tag vocabulary of the book with usage counts, for autocomplete.
+
+    q: case-insensitive prefix filter on the tag. Variants differing only
+    in case are merged (the first-seen casing is displayed). Sorted by
+    usage desc, then A-Z.
+    """
+    totals: Dict[str, int] = {}
+    display: Dict[str, str] = {}
+    for row in conn.execute("SELECT tags FROM saved").fetchall():
+        for tag in json.loads(row["tags"]):
+            tag = str(tag).strip()
+            if not tag:
+                continue
+            key = tag.lower()
+            totals[key] = totals.get(key, 0) + 1
+            display.setdefault(key, tag)
+    if q:
+        ql = q.lower()
+        totals = {k: c for k, c in totals.items() if k.startswith(ql)}
+    return [{"tag": display[k], "count": c} for k, c in
+            sorted(totals.items(), key=lambda kv: (-kv[1], kv[0]))]
+
+
 def export_all(conn: sqlite3.Connection) -> List[Dict]:
     """Every saved recipe in full, for JSON export."""
     rows = conn.execute(

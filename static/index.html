@@ -78,7 +78,8 @@
 <h2 data-i18n="book">📖 Моя книга рецептів</h2>
 <form id="searchf" style="display:flex;gap:.5rem;margin:.5rem 0;flex-wrap:wrap;align-items:center">
   <input type="search" id="q" placeholder="Пошук: назва або інгредієнт…" style="flex:1;min-width:10rem;padding:.5rem" data-i18n-ph="search_ph">
-  <input type="search" id="tagf" placeholder="тег…" style="width:8rem;padding:.5rem" data-i18n-ph="tag_ph">
+  <input type="search" id="tagf" placeholder="тег…" style="width:8rem;padding:.5rem" data-i18n-ph="tag_ph" list="taglist" autocomplete="off">
+  <datalist id="taglist"></datalist>
   <select id="sort" style="padding:.5rem">
     <option value="new" data-i18n="sort_new">спочатку нові (дата додавання)</option>
     <option value="rating" data-i18n="sort_rating">за рейтингом</option>
@@ -437,6 +438,11 @@ document.querySelectorAll('.langbtn').forEach(b => {
   b.onclick = () => setLang(b.dataset.lang);
   b.classList.toggle('on', b.dataset.lang === currentLang());
 });
+
+// tag autocomplete: fill the filter's datalist with the book's tag vocabulary
+fetch('/api/tags/suggest').then(r => r.json()).then(({ suggestions }) => {
+  $('#taglist').innerHTML = suggestions.map(s => `<option value="${esc(s.tag)}">`).join('');
+}).catch(() => {});
 
 loadSaved();
 loadPlan();

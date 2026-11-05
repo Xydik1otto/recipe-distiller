@@ -275,6 +275,12 @@ def estimate_saved_nutrition(recipe_id: int):
     return estimate(item["recipe"])
 
 
+@app.get("/api/tags/suggest")
+def tags_suggest(q: str = ""):
+    """Autocomplete for the tag filter: the book's tag vocabulary."""
+    return {"suggestions": db.all_tags(db.connect(), q=q.strip() or None)}
+
+
 @app.get("/api/recipes/export")
 def export_recipes():
     conn = db.connect()
