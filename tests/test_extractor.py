@@ -84,3 +84,35 @@ def test_priority_jsonld_wins_over_heuristics():
     """Page has both JSON-LD and heuristic lists — JSON-LD payload must win."""
     recipe = extract_from_html(load("jsonld.html"), "https://example.com/borscht")
     assert "beets" in recipe["ingredients"][0]
+
+
+def test_jsonld_howtosection_nested_flattened_in_order():
+    recipe = extract_from_html(load("jsonld_sections.html"), "https://example.com/cake")
+    assert recipe["title"] == "Layered Cake"
+    steps = recipe["steps"]
+    assert steps[0] == "For the dough"
+    assert "Mix flour and eggs." in steps
+    assert steps.index("For the filling") > steps.index("For the dough")
+    assert steps[-1] == "Layer dough and filling."
+    assert len(steps) == 6  # 2 section headings + 4 steps
+
+
+def test_parse_instructions_handles_mixed_nesting():
+    from app.extractor import _parse_instructions
+    node = [
+        {"@type": "HowToSection", "itemListElement": [
+            {"@type": "HowToSection", "name": "Prep", "itemListElement": [
+                {"@type": "HowToStep", "text": "Wash the rice."}]},
+            {"@type": "HowToStep", "text": "Soak for 30 min."}]},
+        "Boil everything.",
+        [{"@type": "HowToStep", "text": {"name": "Serve hot."}}],
+    ]
+    assert _parse_instructions(node) == [
+        "Prep", "Wash the rice.", "Soak for 30 min.", "Boil everything.", "Serve hot."]
+
+
+def test_extract_api_returns_sectioned_steps(client):
+    client, _ = client
+    r = client.post("/api/extract", json={"url": "https://example.com/cake"})
+    assert r.status_code == 200
+    assert r.json()["recipe"]["steps"][0] == "For the dough"

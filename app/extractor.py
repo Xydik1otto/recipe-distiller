@@ -45,6 +45,43 @@ def _parse_duration(value) -> Optional[str]:
     return text.strip() or None
 
 
+def _node_types(item) -> List[str]:
+    t = item.get("@type", [])
+    return [str(t)] if isinstance(t, str) else [str(x) for x in (t or [])]
+
+
+def _parse_instructions(node) -> List[str]:
+    """Recursively flatten recipeInstructions.
+
+    Handles plain strings, HowToStep dicts and nested HowToSection groups
+    ('For the dough' -> itemListElement -> HowToStep...). A section's name
+    becomes its own entry, followed by the steps it contains.
+    """
+    steps: List[str] = []
+    items = node if isinstance(node, list) else [node]
+    for item in items:
+        if isinstance(item, dict):
+            types = [t.lower() for t in _node_types(item)]
+            if "howtosection" in types:
+                name = re.sub(r"\s+", " ", str(item.get("name") or "")).strip()
+                if name:
+                    steps.append(name)
+                steps.extend(_parse_instructions(item.get("itemListElement")))
+                continue
+            text = item.get("text") or item.get("name") or ""
+            if isinstance(text, dict):  # {"@type": "HowToStep", "text": {...}}
+                text = text.get("text") or text.get("name") or ""
+        elif isinstance(item, list):
+            steps.extend(_parse_instructions(item))
+            continue
+        else:
+            text = str(item)
+        text = re.sub(r"\s+", " ", text).strip()
+        if text:
+            steps.append(text)
+    return steps
+
+
 def _clean_list(items) -> List[str]:
     out: List[str] = []
     for item in items or []:
@@ -99,7 +136,7 @@ def extract_jsonld(soup: BeautifulSoup) -> Optional[Dict]:
                 "total_time": _parse_duration(node.get("totalTime")),
                 "ingredients": _clean_list(
                     node.get("recipeIngredient") or node.get("ingredients")),
-                "steps": _clean_list(
+                "steps": _parse_instructions(
                     node.get("recipeInstructions") or node.get("instructions")),
             }
     return None
