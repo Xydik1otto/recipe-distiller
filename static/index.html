@@ -99,6 +99,7 @@
 
 <p>
   <a href="/api/recipes/export" download="recipes.json" data-i18n="export_link">⬇ Export JSON</a>
+  <a href="/api/recipes/export.csv" download="recipes.csv" data-i18n="export_csv">⬇ Export CSV</a>
   <button type="button" id="importbtn" data-i18n="import_btn">⬆ Import JSON</button>
   <input type="file" id="importfile" accept="application/json,.json" hidden>
 </p>
@@ -222,6 +223,7 @@ async function loadSaved() {
        <button data-del="${it.id}">🗑</button></span></div>`);
   }
   box.querySelectorAll('button[data-del]').forEach(b => b.onclick = async () => {
+    if (!confirm(t('delete_confirm'))) return;   // data safety: never a silent delete
     await fetch('/api/recipes/' + b.dataset.del, {method:'DELETE'}); loadSaved();
   });
   box.querySelectorAll('.heart').forEach(b => b.onclick = async () => {

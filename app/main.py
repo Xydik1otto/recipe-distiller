@@ -235,6 +235,24 @@ def export_recipes():
     return {"version": 1, "recipes": db.export_all(conn)}
 
 
+@app.get("/api/recipes/export.csv")
+def export_recipes_csv():
+    """One-click data safety: the whole book as CSV (title,url,tags,favorite,rating,saved_at)."""
+    import csv
+    import io
+
+    conn = db.connect()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["title", "url", "tags", "favorite", "rating", "saved_at"])
+    for r in db.export_all(conn):
+        writer.writerow([r["title"], r["url"], ";".join(r["tags"]),
+                         int(r["favorite"]), r["rating"], r["saved_at"]])
+    from fastapi.responses import Response
+    return Response(buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": 'attachment; filename="recipes.csv"'})
+
+
 @app.post("/api/demo")
 def load_demo_recipes():
     """First-run experience: load 3 demo recipes (skips ones already present)."""
